@@ -30,7 +30,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'player_left', 'player_right', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom']) {
+      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -249,7 +249,7 @@
       let dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
       p.focus = !!k.shift;
-      p.bank = dx;
+      p.bank += (dx - p.bank) * Math.min(1, dt * 12);
       const sp = p.focus ? 120 : 265;
       p.x = clamp(p.x + dx * sp * dt, 14, W - 14);
       p.y = clamp(p.y + dy * sp * dt, H * 0.35, H - 22);
@@ -682,7 +682,8 @@
       }
       if (game.state === 'play' && game.player.alive) {
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
-          const pname = game.player.bank < 0 ? 'player_left' : game.player.bank > 0 ? 'player_right' : 'player';
+          const b = game.player.bank;
+          const pname = b <= -0.6 ? 'player_left2' : b < -0.25 ? 'player_left' : b >= 0.6 ? 'player_right2' : b > 0.25 ? 'player_right' : 'player';
           if (spriteReady(pname)) {
             const img = game.sprites[pname];
             const s = 36 / img.naturalWidth;
