@@ -7,11 +7,15 @@
   const d2 = (ax, ay, bx, by) => { const dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; };
 
   const TYPES = {
-    drone:  { hp: 1, r: 12, speed: 95, score: 100, color: '#ff5fd0' },
-    weaver: { hp: 2, r: 12, speed: 75, score: 200, color: '#ffd23f' },
-    tank:   { hp: 6, r: 18, speed: 42, score: 400, color: '#ff7a3d' },
-    gunner: { hp: 3, r: 14, speed: 60, score: 300, color: '#8d6bff' },
-    scout:  { hp: 2, r: 13, speed: 115, score: 150, color: '#a855f7' },
+    drone:   { hp: 1, r: 12, speed: 95,  score: 100, color: '#ff5fd0', fire: 1.4 },
+    weaver:  { hp: 2, r: 12, speed: 75,  score: 200, color: '#ffd23f', fire: 1.2 },
+    tank:    { hp: 6, r: 18, speed: 42,  score: 400, color: '#ff7a3d', fire: 0.9 },
+    gunner:  { hp: 3, r: 14, speed: 60,  score: 300, color: '#8d6bff', fire: 0.8 },
+    scout:   { hp: 2, r: 13, speed: 115, score: 150, color: '#a855f7', fire: 1.1 },
+    raider:  { hp: 2, r: 14, speed: 130, score: 250, color: '#2dd4bf', fire: 1.0 },
+    stalker: { hp: 3, r: 14, speed: 70,  score: 350, color: '#4ade80', fire: 0.8 },
+    brute:   { hp: 8, r: 20, speed: 35,  score: 600, color: '#60a5fa', fire: 0.7 },
+    phantom: { hp: 2, r: 12, speed: 100, score: 300, color: '#e879f9', fire: 1.3 },
   };
 
   function createGame(opts) {
@@ -26,7 +30,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'bullet', 'special', 'blast', 'scout']) {
+      for (const name of ['player', 'player_left', 'player_right', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -38,7 +42,7 @@
     };
     for (let i = 0; i < 90; i++) game.stars.push({ x: rand(0, W), y: rand(0, H), z: [0.3, 0.6, 1][i % 3] });
     try { game.hi = parseInt((storage && storage.getItem('starstriker_hi')) || '0', 10) || 0; } catch (e) { game.hi = 0; }
-    game.player = { x: W / 2, y: H - 80, r: 3, focus: false, inv: 0, fireCd: 0, alive: true };
+    game.player = { x: W / 2, y: H - 80, r: 3, focus: false, inv: 0, fireCd: 0, alive: true, bank: 0 };
 
     let actx = null;
     function audio() {
@@ -91,7 +95,7 @@
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
       game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
-      game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true;
+      game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true; game.player.bank = 0;
     }
 
     function gameOver() {
@@ -185,11 +189,11 @@
       const s = game.spawns;
       if (n % 5 === 0) { game.boss = makeBoss(n); sfx.boss(); return; }
       const pats = [
-        () => { for (let i = 0; i < 5; i++) s.push({ type: 'drone', x: 60 + i * 90, y: -40 - i * 26, t: 0.2 + i * 0.16 }); },
+        () => { for (let i = 0; i < 5; i++) s.push({ type: 'drone', x: 60 + i * 90, y: -40 - i * 26, t: 0.2 + i * 0.16 }); for (let i = 0; i < 2; i++) s.push({ type: 'raider', x: 90 + i * 300, y: -30 - i * 50, t: 0.4 + i * 0.3 }); },
         () => { for (let i = 0; i < 7; i++) s.push({ type: 'drone', x: 40 + i * 66, y: -40, t: i * 0.12 }); for (let i = 0; i < 3; i++) s.push({ type: 'scout', x: 100 + i * 140, y: -30 - i * 40, t: 0.5 + i * 0.3 }); },
-        () => { for (let i = 0; i < 3; i++) s.push({ type: 'tank', x: 100 + i * 140, y: -70 - i * 50, t: i * 0.5 }); s.push({ type: 'weaver', x: W / 2, y: -220, t: 0.3 }); },
-        () => { for (let i = 0; i < 4; i++) s.push({ type: 'gunner', x: 80 + i * 105, y: -50 - i * 60, t: i * 0.35 }); },
-        () => { for (let i = 0; i < 9; i++) s.push({ type: 'drone', x: 50 + (i % 3) * 190, y: -40 - Math.floor(i / 3) * 70, t: i * 0.12 }); s.push({ type: 'tank', x: W / 2, y: -260, t: 0.6 }); for (let i = 0; i < 2; i++) s.push({ type: 'scout', x: 120 + i * 240, y: -120 - i * 50, t: 0.4 + i * 0.4 }); },
+        () => { for (let i = 0; i < 3; i++) s.push({ type: 'tank', x: 100 + i * 140, y: -70 - i * 50, t: i * 0.5 }); s.push({ type: 'weaver', x: W / 2, y: -220, t: 0.3 }); s.push({ type: 'brute', x: W / 2, y: -320, t: 0.8 }); s.push({ type: 'phantom', x: 120, y: -180, t: 0.5 }); },
+        () => { for (let i = 0; i < 4; i++) s.push({ type: 'gunner', x: 80 + i * 105, y: -50 - i * 60, t: i * 0.35 }); for (let i = 0; i < 2; i++) s.push({ type: 'stalker', x: 110 + i * 260, y: -40 - i * 60, t: 0.3 + i * 0.35 }); },
+        () => { for (let i = 0; i < 9; i++) s.push({ type: 'drone', x: 50 + (i % 3) * 190, y: -40 - Math.floor(i / 3) * 70, t: i * 0.12 }); s.push({ type: 'tank', x: W / 2, y: -260, t: 0.6 }); for (let i = 0; i < 2; i++) s.push({ type: 'scout', x: 120 + i * 240, y: -120 - i * 50, t: 0.4 + i * 0.4 }); for (let i = 0; i < 2; i++) s.push({ type: 'raider', x: 150 + i * 180, y: -140 - i * 60, t: 0.5 + i * 0.4 }); s.push({ type: 'phantom', x: W - 120, y: -200, t: 0.7 }); },
       ];
       pats[(n - 1) % pats.length]();
     }
@@ -200,7 +204,7 @@
       return {
         type: sp.type, x: sp.x, y: sp.y, baseX: sp.x, r: base.r, hp, maxHp: hp,
         speed: base.speed * (1 + game.wave * 0.04), score: base.score, color: base.color,
-        t: 0, phase: rand(0, 6.28), fireCd: rand(0.6, 2.2), dead: false,
+        t: 0, phase: rand(0, 6.28), fireCd: rand(0.6, 2.2), fireMul: base.fire || 1, dead: false,
       };
     }
 
@@ -245,6 +249,7 @@
       let dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
       p.focus = !!k.shift;
+      p.bank = dx;
       const sp = p.focus ? 120 : 265;
       p.x = clamp(p.x + dx * sp * dt, 14, W - 14);
       p.y = clamp(p.y + dy * sp * dt, H * 0.35, H - 22);
@@ -267,8 +272,12 @@
         else if (e.type === 'tank') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -40, 40) * dt; }
         else if (e.type === 'gunner') { if (e.y < 110) e.y += e.speed * dt; else e.x += Math.sin(e.t * 2.2 + e.phase) * 90 * dt; }
         else if (e.type === 'scout') { e.y += e.speed * dt; e.x += (Math.sin(e.t * 3 + e.phase) * 60 + clamp(game.player.x - e.x, -25, 25)) * dt; }
+        else if (e.type === 'raider') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -60, 60) * dt; }
+        else if (e.type === 'stalker') { if (e.y < 130) e.y += e.speed * dt; else e.x += Math.sin(e.t * 2.5 + e.phase) * 110 * dt; }
+        else if (e.type === 'brute') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -25, 25) * dt; }
+        else if (e.type === 'phantom') { e.y += e.speed * 0.8 * dt; e.x = e.baseX + Math.sin(e.t * 4 + e.phase) * 110; }
         e.fireCd -= dt;
-        if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6); }
+        if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6) * e.fireMul; }
         if (e.y > H + 50) e.dead = true;
       }
 
@@ -402,7 +411,16 @@
 
     function drawEnemy(ctx, e) {
       ctx.save(); ctx.translate(e.x, e.y);
-      if (e.type === 'scout') {
+      const simgName = 'enemy_' + e.type;
+      if (e.type !== 'scout' && spriteReady(simgName)) {
+        const img = game.sprites[simgName];
+        const s = (e.r * 2.6) / img.naturalWidth;
+        ctx.save();
+        ctx.rotate(e.type === 'weaver' ? Math.sin(e.t * 6) * 0.35 : e.type === 'drone' ? e.t * 2 : 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
+        ctx.restore();
+      } else if (e.type === 'scout') {
         if (spriteReady('scout')) {
           const img = game.sprites.scout;
           const s = 30 / img.naturalWidth;
@@ -633,16 +651,23 @@
       for (const e of game.enemies) drawEnemy(ctx, e);
       if (game.boss) drawBoss(ctx, game.boss);
       for (const eb of game.ebullets) {
-        ctx.fillStyle = 'rgba(255,77,109,0.3)'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r + 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        if (spriteReady('ebullet')) {
+          ctx.save(); ctx.translate(eb.x, eb.y);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(game.sprites.ebullet, -6, -6, 12, 12);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = 'rgba(255,77,109,0.3)'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r + 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        }
       }
       for (const bl of game.bullets) {
         const heavy = game.weapon >= 3 && spriteReady('special');
         const img = heavy ? game.sprites.special : game.sprites.bullet;
         if (spriteReady(heavy ? 'special' : 'bullet')) {
           const ang = Math.atan2(bl.vy, bl.vx) + Math.PI / 2;
-          const bw = heavy ? 9 : 6, bh = heavy ? 20 : 15;
+          const bw = heavy ? 10 : 7, bh = heavy ? 26 : 20;
           ctx.save(); ctx.translate(bl.x, bl.y); ctx.rotate(ang);
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(img, -bw / 2, -bh / 2, bw, bh);
@@ -657,8 +682,9 @@
       }
       if (game.state === 'play' && game.player.alive) {
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
-          if (spriteReady('player')) {
-            const img = game.sprites.player;
+          const pname = game.player.bank < 0 ? 'player_left' : game.player.bank > 0 ? 'player_right' : 'player';
+          if (spriteReady(pname)) {
+            const img = game.sprites[pname];
             const s = 36 / img.naturalWidth;
             ctx.save(); ctx.translate(game.player.x, game.player.y);
             ctx.imageSmoothingEnabled = false;
