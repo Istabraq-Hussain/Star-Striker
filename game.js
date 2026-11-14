@@ -236,6 +236,9 @@
       p.inv = Math.max(0, p.inv - dt);
       p.fireCd -= dt;
       if (k[' '] && p.fireCd <= 0) { fire(); p.fireCd = 0.13; }
+      if (game.parts.length < 400) {
+        game.parts.push({ x: p.x + rand(-2, 2), y: p.y + 12, vx: rand(-8, 8), vy: rand(60, 120), t: 0.28, max: 0.28, color: p.focus ? '#ffffff' : '#59f7ff', r: rand(1, 2) });
+      }
 
       for (const s of game.spawns) s.t -= dt;
       const ready = game.spawns.filter(s => s.t <= 0);
@@ -352,12 +355,28 @@
 
     function drawPlayer(ctx, p) {
       ctx.save(); ctx.translate(p.x, p.y);
-      ctx.fillStyle = '#59f7ff';
+      const fl = 10 + Math.sin(game.time * 30) * 4;
+      let g = ctx.createLinearGradient(0, 10, 0, 10 + fl + 8);
+      g.addColorStop(0, '#fff7ae'); g.addColorStop(0.4, '#ffb347'); g.addColorStop(1, 'rgba(255,80,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(-4, 10); ctx.lineTo(0, 10 + fl + 8); ctx.lineTo(4, 10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#1b9ec4';
+      ctx.beginPath(); ctx.moveTo(-4, 4); ctx.lineTo(-15, 13); ctx.lineTo(-9, 13); ctx.lineTo(-5, 8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(4, 4); ctx.lineTo(15, 13); ctx.lineTo(9, 13); ctx.lineTo(5, 8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7df9ff';
+      ctx.fillRect(-15, 12, 3, 2); ctx.fillRect(12, 12, 3, 2);
+      g = ctx.createLinearGradient(0, -18, 0, 12);
+      g.addColorStop(0, '#bffbff'); g.addColorStop(0.45, '#59f7ff'); g.addColorStop(1, '#0e7d9c');
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.moveTo(0, -16); ctx.lineTo(12, 12); ctx.lineTo(4, 6); ctx.lineTo(-4, 6); ctx.lineTo(-12, 12);
+      ctx.moveTo(0, -18);
+      ctx.lineTo(6, -2); ctx.lineTo(9, 10); ctx.lineTo(4, 12); ctx.lineTo(-4, 12); ctx.lineTo(-9, 10); ctx.lineTo(-6, -2);
       ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffb347';
-      ctx.beginPath(); ctx.moveTo(-3, 12); ctx.lineTo(0, 18 + Math.sin(game.time * 30) * 3); ctx.lineTo(3, 12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#0b2b4a';
+      ctx.beginPath(); ctx.ellipse(0, -6, 2.6, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath(); ctx.ellipse(-0.8, -8, 0.9, 1.8, -0.4, 0, Math.PI * 2); ctx.fill();
       if (p.focus) {
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.stroke();
@@ -367,34 +386,88 @@
 
     function drawEnemy(ctx, e) {
       ctx.save(); ctx.translate(e.x, e.y);
-      ctx.fillStyle = e.color;
       if (e.type === 'drone') {
         ctx.rotate(e.t * 2);
+        ctx.fillStyle = 'rgba(255,95,208,0.25)';
+        ctx.beginPath(); ctx.arc(0, 0, e.r + 5, 0, Math.PI * 2); ctx.fill();
+        const gr = ctx.createLinearGradient(0, -e.r, 0, e.r);
+        gr.addColorStop(0, '#ff9be2'); gr.addColorStop(1, '#d1219b');
+        ctx.fillStyle = gr;
         ctx.beginPath(); ctx.moveTo(0, -e.r); ctx.lineTo(e.r, 0); ctx.lineTo(0, e.r); ctx.lineTo(-e.r, 0); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#ffd7f2'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = '#5c0f3f';
+        ctx.beginPath(); ctx.arc(0, 0, e.r * 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff5fd0';
+        ctx.beginPath(); ctx.arc(0, 0, e.r * 0.2, 0, Math.PI * 2); ctx.fill();
       } else if (e.type === 'weaver') {
-        ctx.beginPath(); ctx.moveTo(0, e.r); ctx.lineTo(e.r * 0.9, -e.r * 0.7); ctx.lineTo(-e.r * 0.9, -e.r * 0.7); ctx.closePath(); ctx.fill();
+        ctx.rotate(Math.sin(e.t * 6) * 0.35);
+        const gr = ctx.createLinearGradient(0, -e.r, 0, e.r);
+        gr.addColorStop(0, '#fff3b0'); gr.addColorStop(1, '#e0a400');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.moveTo(0, e.r + 2);
+        ctx.lineTo(e.r * 1.1, -e.r * 0.6);
+        ctx.lineTo(e.r * 0.4, -e.r * 0.2);
+        ctx.lineTo(0, -e.r);
+        ctx.lineTo(-e.r * 0.4, -e.r * 0.2);
+        ctx.lineTo(-e.r * 1.1, -e.r * 0.6);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#fff8dc'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = '#7a5200';
+        ctx.beginPath(); ctx.arc(0, -e.r * 0.3, e.r * 0.28, 0, Math.PI * 2); ctx.fill();
       } else if (e.type === 'tank') {
+        const gr = ctx.createRadialGradient(-e.r * 0.3, -e.r * 0.3, 2, 0, 0, e.r * 1.3);
+        gr.addColorStop(0, '#ffc08a'); gr.addColorStop(1, '#b34700');
+        ctx.fillStyle = gr;
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-          const a = i / 6 * Math.PI * 2 + e.t;
+          const a = i / 6 * Math.PI * 2 + e.t * 0.5;
           const px = Math.cos(a) * e.r, py = Math.sin(a) * e.r;
           if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
         }
         ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#ffd9b0'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(-e.r * 0.55, -e.r * 0.55, e.r * 1.1, e.r * 0.35);
+        ctx.fillRect(-e.r * 0.55, e.r * 0.2, e.r * 1.1, e.r * 0.35);
+        ctx.fillStyle = '#7a2e00';
+        ctx.beginPath(); ctx.arc(0, 0, e.r * 0.42, 0, Math.PI * 2); ctx.fill();
+        const ta = Math.atan2(game.player.y - e.y, game.player.x - e.x);
+        ctx.strokeStyle = '#ffd9b0'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(ta) * e.r * 0.9, Math.sin(ta) * e.r * 0.9); ctx.stroke();
         if (e.maxHp > 1) {
           ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, e.r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, e.hp / e.maxHp)); ctx.stroke();
         }
       } else {
         ctx.rotate(Math.sin(e.t * 4) * 0.3);
-        ctx.fillRect(-e.r * 0.8, -e.r * 0.8, e.r * 1.6, e.r * 1.6);
+        const gr = ctx.createLinearGradient(-e.r, -e.r, e.r, e.r);
+        gr.addColorStop(0, '#c9b8ff'); gr.addColorStop(1, '#5b3fd4');
+        ctx.fillStyle = gr;
+        ctx.fillRect(-e.r * 0.85, -e.r * 0.85, e.r * 1.7, e.r * 1.7);
+        ctx.strokeStyle = '#e6dcff'; ctx.lineWidth = 1;
+        ctx.strokeRect(-e.r * 0.85, -e.r * 0.85, e.r * 1.7, e.r * 1.7);
+        ctx.fillStyle = '#8d6bff';
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          ctx.beginPath(); ctx.arc(sx * e.r * 0.85, sy * e.r * 0.85, e.r * 0.25, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.rotate(e.t * 3);
+        ctx.fillStyle = '#2c1a6e';
+        ctx.beginPath(); ctx.moveTo(0, -e.r * 0.5); ctx.lineTo(e.r * 0.5, 0); ctx.lineTo(0, e.r * 0.5); ctx.lineTo(-e.r * 0.5, 0); ctx.closePath(); ctx.fill();
       }
       ctx.restore();
     }
 
     function drawBoss(ctx, b) {
-      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.t * 0.5);
-      ctx.fillStyle = '#e0244a';
+      ctx.save(); ctx.translate(b.x, b.y);
+      const aura = ctx.createRadialGradient(0, 0, b.r * 0.4, 0, 0, b.r * 1.6);
+      aura.addColorStop(0, 'rgba(255,60,90,0.35)'); aura.addColorStop(1, 'rgba(255,60,90,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath(); ctx.arc(0, 0, b.r * 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(b.t * 0.5);
+      const gr = ctx.createRadialGradient(-b.r * 0.3, -b.r * 0.3, 4, 0, 0, b.r);
+      gr.addColorStop(0, '#ff8aa0'); gr.addColorStop(0.6, '#e0244a'); gr.addColorStop(1, '#8f0f2c');
+      ctx.fillStyle = gr;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const r = i % 2 ? b.r * 0.55 : b.r;
@@ -402,15 +475,29 @@
         if (i) ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); else ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#ffb3c0'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.rotate(-b.t * 1.2);
+      ctx.strokeStyle = 'rgba(255,210,63,0.9)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, b.r * 0.45, 0, Math.PI * 2); ctx.stroke();
+      ctx.rotate(b.t * 1.2);
+      const pulse = 1 + Math.sin(b.t * 5) * 0.15;
       ctx.fillStyle = '#ffd23f';
-      ctx.beginPath(); ctx.arc(0, 0, b.r * 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, b.r * 0.28 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5c0f1e';
+      ctx.beginPath(); ctx.arc(0, 0, b.r * 0.14, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
     function drawPowerup(ctx, u) {
       ctx.save(); ctx.translate(u.x, u.y + Math.sin(u.t * 5) * 3);
-      ctx.fillStyle = u.kind === 'p' ? '#7dff6a' : u.kind === 'b' ? '#ffd23f' : '#ff6a9d';
+      const col = u.kind === 'p' ? '#7dff6a' : u.kind === 'b' ? '#ffd23f' : '#ff6a9d';
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.arc(0, 0, u.r + 4, 0, Math.PI * 2); ctx.fill();
+      const gr = ctx.createLinearGradient(0, -u.r, 0, u.r);
+      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, col); gr.addColorStop(1, col);
+      ctx.fillStyle = gr;
       ctx.beginPath(); ctx.arc(0, 0, u.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = '#0b0b1a';
       ctx.font = u.kind === 'life' ? 'bold 7px monospace' : 'bold 11px monospace';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -513,10 +600,15 @@
       for (const e of game.enemies) drawEnemy(ctx, e);
       if (game.boss) drawBoss(ctx, game.boss);
       for (const eb of game.ebullets) {
+        ctx.fillStyle = 'rgba(255,77,109,0.3)'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r + 3, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
       }
-      for (const bl of game.bullets) { ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14); }
+      for (const bl of game.bullets) {
+        ctx.fillStyle = 'rgba(125,249,255,0.35)'; ctx.fillRect(bl.x - 3, bl.y - 10, 6, 18);
+        ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(bl.x - 1, bl.y - 6, 2, 10);
+      }
       if (game.state === 'play' && game.player.alive) {
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) drawPlayer(ctx, game.player);
       }
