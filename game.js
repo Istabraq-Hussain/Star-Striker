@@ -26,7 +26,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'bullet', 'special', 'blast', 'scout']) {
+      for (const name of ['player', 'player_left', 'player_right', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -38,7 +38,7 @@
     };
     for (let i = 0; i < 90; i++) game.stars.push({ x: rand(0, W), y: rand(0, H), z: [0.3, 0.6, 1][i % 3] });
     try { game.hi = parseInt((storage && storage.getItem('starstriker_hi')) || '0', 10) || 0; } catch (e) { game.hi = 0; }
-    game.player = { x: W / 2, y: H - 80, r: 3, focus: false, inv: 0, fireCd: 0, alive: true };
+    game.player = { x: W / 2, y: H - 80, r: 3, focus: false, inv: 0, fireCd: 0, alive: true, bank: 0 };
 
     let actx = null;
     function audio() {
@@ -91,7 +91,7 @@
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
       game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
-      game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true;
+      game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true; game.player.bank = 0;
     }
 
     function gameOver() {
@@ -245,6 +245,7 @@
       let dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
       p.focus = !!k.shift;
+      p.bank = dx;
       const sp = p.focus ? 120 : 265;
       p.x = clamp(p.x + dx * sp * dt, 14, W - 14);
       p.y = clamp(p.y + dy * sp * dt, H * 0.35, H - 22);
@@ -402,7 +403,16 @@
 
     function drawEnemy(ctx, e) {
       ctx.save(); ctx.translate(e.x, e.y);
-      if (e.type === 'scout') {
+      const simgName = 'enemy_' + e.type;
+      if (e.type !== 'scout' && spriteReady(simgName)) {
+        const img = game.sprites[simgName];
+        const s = (e.r * 2.6) / img.naturalWidth;
+        ctx.save();
+        ctx.rotate(e.type === 'weaver' ? Math.sin(e.t * 6) * 0.35 : e.type === 'drone' ? e.t * 2 : 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
+        ctx.restore();
+      } else if (e.type === 'scout') {
         if (spriteReady('scout')) {
           const img = game.sprites.scout;
           const s = 30 / img.naturalWidth;
@@ -633,16 +643,23 @@
       for (const e of game.enemies) drawEnemy(ctx, e);
       if (game.boss) drawBoss(ctx, game.boss);
       for (const eb of game.ebullets) {
-        ctx.fillStyle = 'rgba(255,77,109,0.3)'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r + 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        if (spriteReady('ebullet')) {
+          ctx.save(); ctx.translate(eb.x, eb.y);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(game.sprites.ebullet, -6, -6, 12, 12);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = 'rgba(255,77,109,0.3)'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r + 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        }
       }
       for (const bl of game.bullets) {
         const heavy = game.weapon >= 3 && spriteReady('special');
         const img = heavy ? game.sprites.special : game.sprites.bullet;
         if (spriteReady(heavy ? 'special' : 'bullet')) {
           const ang = Math.atan2(bl.vy, bl.vx) + Math.PI / 2;
-          const bw = heavy ? 9 : 6, bh = heavy ? 20 : 15;
+          const bw = heavy ? 10 : 7, bh = heavy ? 26 : 20;
           ctx.save(); ctx.translate(bl.x, bl.y); ctx.rotate(ang);
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(img, -bw / 2, -bh / 2, bw, bh);
@@ -657,8 +674,9 @@
       }
       if (game.state === 'play' && game.player.alive) {
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
-          if (spriteReady('player')) {
-            const img = game.sprites.player;
+          const pname = game.player.bank < 0 ? 'player_left' : game.player.bank > 0 ? 'player_right' : 'player';
+          if (spriteReady(pname)) {
+            const img = game.sprites[pname];
             const s = 36 / img.naturalWidth;
             ctx.save(); ctx.translate(game.player.x, game.player.y);
             ctx.imageSmoothingEnabled = false;
