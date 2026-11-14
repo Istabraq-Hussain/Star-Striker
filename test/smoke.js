@@ -78,6 +78,23 @@ assert(g.enemies.some(e => e.type === 'scout'), 'scout enemy spawns');
 assert(g.enemies.some(e => e.type === 'raider'), 'raider (kitbash) enemy spawns');
 g.render(ctxStub);
 
+// focus meter: drains while focusing, refills when not, locks at 0 until refilled
+g.player.inv = 9999;
+g.setKey('shift', true); step(g, 60);
+assert(g.player.focus === true && g.focusMeter < 100, 'focus drains the meter (' + g.focusMeter.toFixed(0) + ')');
+g.setKey('shift', false); const m0 = g.focusMeter; step(g, 120);
+assert(g.focusMeter > m0, 'focus meter refills when not focusing (' + m0.toFixed(0) + ' -> ' + g.focusMeter.toFixed(0) + ')');
+g.setKey('shift', true);
+let locked = false;
+for (let i = 0; i < 40 && !locked; i++) { step(g, 10); if (g.focusLock) locked = true; }
+step(g, 5);
+assert(locked && g.player.focus === false, 'focus locks out when the meter is empty');
+g.setKey('shift', false); step(g, 400);
+assert(g.focusLock === false && g.focusMeter >= 35, 'focus unlocks after refilling');
+g.setKey('shift', true); step(g, 30);
+assert(g.player.focus === true, 'focus usable again after refill');
+g.setKey('shift', false);
+
 // 4. bomb clears enemy bullets
 g.ebullets.push({ x: 100, y: 100, vx: 0, vy: 100, r: 4 });
 const bombsBefore = g.bombs;
@@ -115,6 +132,10 @@ for (let i = 0; i < 60 * 20 && g.boss; i++) {
 }
 assert(!g.boss && g.bossKills === 1, 'boss can be killed (bossKills=' + g.bossKills + ')');
 g.setKey(' ', false);
+assert(g.state === 'clear', 'killing the first boss finishes level 1 (LEVEL CLEAR screen)');
+g.render(ctxStub);
+g.press('enter');
+assert(g.state === 'play' && g.level === 2, 'Enter continues to level 2 after the clear screen');
 
 // 8. game over + hi-score persisted
 g.lives = 1; g.player.inv = 0;
@@ -143,11 +164,11 @@ try {
     if (i % 700 === 350) g.press('p');
     g.update(1 / 60);
     maxEnemies = Math.max(maxEnemies, g.enemies.length);
-    if (g.state === 'over' && i % 500 === 100) g.press('enter');
+    if ((g.state === 'over' || g.state === 'clear') && i % 500 === 100) g.press('enter');
   }
 } catch (e) { soakErr = e; }
 assert(!soakErr, 'soak: 6000 random-input frames without errors' + (soakErr ? ' — ' + soakErr.message : '') + ' (maxEnemies=' + maxEnemies + ', state=' + g.state + ', bossKills=' + g.bossKills + ')');
-assert(['title', 'play', 'over'].indexOf(g.state) >= 0, 'soak ends in a valid state');
+assert(['title', 'play', 'over', 'clear'].indexOf(g.state) >= 0, 'soak ends in a valid state');
 
 console.log(failures === 0 ? '\nALL TESTS PASSED' : '\n' + failures + ' TEST(S) FAILED');
 process.exit(failures === 0 ? 0 : 1);

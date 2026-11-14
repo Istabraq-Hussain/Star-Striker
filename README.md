@@ -18,7 +18,7 @@ python3 -m http.server 8000
 | --- | --- |
 | Arrows / WASD | Move |
 | Space (hold) | Fire |
-| Shift (hold) | Focus mode — slow movement, shows your tiny hitbox, and slows the whole world (enemies, enemy bullets, boss) to 45% speed |
+| Shift (hold) | Focus mode — slow movement, shows your tiny hitbox, slows the whole world to 45%; drains the FOCUS bar (refills when not used, locks at 0 until refilled) |
 | X | Bomb (clears enemy bullets, damages everything on screen) |
 | P | Pause / resume |
 | M | Toggle sound |
@@ -28,7 +28,8 @@ python3 -m http.server 8000
 
 - Parallax starfield, screen shake, particle explosions
 - 9 enemy types in rotating wave formations that scale with wave number: drone, weaver, tank, gunner, scout (organic creature remixed from `scout_top_teal.png`), plus raider/stalker/brute/phantom — kitbashed from Ship2/4/5/6.png (front/mid/rear sections recombined), rotated 90° to face the player, and recolored
-- Boss every 5th wave: radial bursts, aimed spreads, spiral patterns, drone summons, HP bar
+- Boss every 5th wave: radial bursts, aimed spreads, spiral patterns, drone summons, HP bar; killing the boss shows a LEVEL CLEAR screen and Enter starts the next (harder) level
+- Limited focus meter: drains while focusing, regenerates otherwise
 - Weapon power-ups up to a 4-level spread, bombs, rare 1UP drops
 - Tiny 3px hitbox (focus mode reveals it) — classic bullet-hell feel
 - Pixel-art sprite player ship (purple & yellow, Moroccan-style wings) with left/right banking poses while moving, sprite enemies in 4 distinct colors, and sprite bullets (bolt / missile / enemy orb), with vector fallback if images aren't loaded
