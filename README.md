@@ -18,7 +18,7 @@ python3 -m http.server 8000
 | --- | --- |
 | Arrows / WASD | Move |
 | Space (hold) | Fire |
-| Shift (hold) | Focus mode — slow movement, shows your tiny hitbox |
+| Shift (hold) | Focus mode — slow movement, shows your tiny hitbox, and slows the whole world (enemies, enemy bullets, boss) to 45% speed |
 | X | Bomb (clears enemy bullets, damages everything on screen) |
 | P | Pause / resume |
 | M | Toggle sound |

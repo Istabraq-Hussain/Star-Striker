@@ -249,7 +249,7 @@
       let dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
       p.focus = !!k.shift;
-      p.bank += (dx - p.bank) * Math.min(1, dt * 12);
+      p.bank += (dx - p.bank) * Math.min(1, dt * 7);
       const sp = p.focus ? 120 : 265;
       p.x = clamp(p.x + dx * sp * dt, 14, W - 14);
       p.y = clamp(p.y + dy * sp * dt, H * 0.35, H - 22);
@@ -259,35 +259,36 @@
       if (game.parts.length < 400) {
         game.parts.push({ x: p.x + rand(-2, 2), y: p.y + 12, vx: rand(-8, 8), vy: rand(60, 120), t: 0.28, max: 0.28, color: p.focus ? '#ffffff' : '#59f7ff', r: rand(1, 2) });
       }
+      const wdt = p.focus ? dt * 0.45 : dt;
 
-      for (const s of game.spawns) s.t -= dt;
+      for (const s of game.spawns) s.t -= wdt;
       const ready = game.spawns.filter(s => s.t <= 0);
       game.spawns = game.spawns.filter(s => s.t > 0);
       for (const s of ready) game.enemies.push(makeEnemy(s));
 
       for (const e of game.enemies) {
-        e.t += dt;
-        if (e.type === 'drone') { e.y += e.speed * dt; e.x = e.baseX + Math.sin(e.t * 2 + e.phase) * 22; }
-        else if (e.type === 'weaver') { e.y += e.speed * 0.7 * dt; e.x = e.baseX + Math.sin(e.t * 3 + e.phase) * 95; }
-        else if (e.type === 'tank') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -40, 40) * dt; }
-        else if (e.type === 'gunner') { if (e.y < 110) e.y += e.speed * dt; else e.x += Math.sin(e.t * 2.2 + e.phase) * 90 * dt; }
-        else if (e.type === 'scout') { e.y += e.speed * dt; e.x += (Math.sin(e.t * 3 + e.phase) * 60 + clamp(game.player.x - e.x, -25, 25)) * dt; }
-        else if (e.type === 'raider') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -60, 60) * dt; }
-        else if (e.type === 'stalker') { if (e.y < 130) e.y += e.speed * dt; else e.x += Math.sin(e.t * 2.5 + e.phase) * 110 * dt; }
-        else if (e.type === 'brute') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -25, 25) * dt; }
-        else if (e.type === 'phantom') { e.y += e.speed * 0.8 * dt; e.x = e.baseX + Math.sin(e.t * 4 + e.phase) * 110; }
-        e.fireCd -= dt;
+        e.t += wdt;
+        if (e.type === 'drone') { e.y += e.speed * wdt; e.x = e.baseX + Math.sin(e.t * 2 + e.phase) * 22; }
+        else if (e.type === 'weaver') { e.y += e.speed * 0.7 * wdt; e.x = e.baseX + Math.sin(e.t * 3 + e.phase) * 95; }
+        else if (e.type === 'tank') { e.y += e.speed * wdt; e.x += clamp(game.player.x - e.x, -40, 40) * wdt; }
+        else if (e.type === 'gunner') { if (e.y < 110) e.y += e.speed * wdt; else e.x += Math.sin(e.t * 2.2 + e.phase) * 90 * wdt; }
+        else if (e.type === 'scout') { e.y += e.speed * wdt; e.x += (Math.sin(e.t * 3 + e.phase) * 60 + clamp(game.player.x - e.x, -25, 25)) * wdt; }
+        else if (e.type === 'raider') { e.y += e.speed * wdt; e.x += clamp(game.player.x - e.x, -60, 60) * wdt; }
+        else if (e.type === 'stalker') { if (e.y < 130) e.y += e.speed * wdt; else e.x += Math.sin(e.t * 2.5 + e.phase) * 110 * wdt; }
+        else if (e.type === 'brute') { e.y += e.speed * wdt; e.x += clamp(game.player.x - e.x, -25, 25) * wdt; }
+        else if (e.type === 'phantom') { e.y += e.speed * 0.8 * wdt; e.x = e.baseX + Math.sin(e.t * 4 + e.phase) * 110; }
+        e.fireCd -= wdt;
         if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6) * e.fireMul; }
         if (e.y > H + 50) e.dead = true;
       }
 
       const b = game.boss;
       if (b) {
-        b.t += dt;
-        if (b.y < b.targetY) { b.y += 55 * dt; }
+        b.t += wdt;
+        if (b.y < b.targetY) { b.y += 55 * wdt; }
         else {
           b.x = W / 2 + Math.sin(b.t * 0.8) * (W / 2 - 90);
-          b.patternT -= dt; b.fireCd -= dt; b.summonT -= dt;
+          b.patternT -= wdt; b.fireCd -= wdt; b.summonT -= wdt;
           if (b.patternT <= 0) { b.pattern = (b.pattern + 1) % 3; b.patternT = 3.2; if (b.pattern === 0) radial(b); }
           if (b.pattern === 1 && b.fireCd <= 0) { aimedSpread(b); b.fireCd = 0.45; }
           if (b.pattern === 2 && b.fireCd <= 0) { spiral(b); b.fireCd = 0.11; }
@@ -304,10 +305,10 @@
       for (const bl of game.bullets) { bl.x += bl.vx * dt; bl.y += bl.vy * dt; }
       game.bullets = game.bullets.filter(bl => bl.y > -20 && bl.y < H + 20 && bl.x > -20 && bl.x < W + 20);
 
-      for (const eb of game.ebullets) { eb.x += eb.vx * dt; eb.y += eb.vy * dt; }
+      for (const eb of game.ebullets) { eb.x += eb.vx * wdt; eb.y += eb.vy * wdt; }
       game.ebullets = game.ebullets.filter(eb => eb.y > -20 && eb.y < H + 20 && eb.x > -20 && eb.x < W + 20);
 
-      for (const u of game.powerups) { u.t += dt; u.y += u.vy * dt; }
+      for (const u of game.powerups) { u.t += wdt; u.y += u.vy * wdt; }
       game.powerups = game.powerups.filter(u => u.y < H + 30);
 
       for (const bl of game.bullets) {
@@ -352,7 +353,7 @@
       game.enemies = game.enemies.filter(e => !e.dead);
 
       if (!game.boss && game.enemies.length === 0 && game.spawns.length === 0) {
-        game.waveTimer -= dt;
+        game.waveTimer -= wdt;
         if (game.waveTimer <= 0) { game.wave++; game.waveTimer = 2.2; spawnWave(game.wave); }
       }
     }
@@ -683,7 +684,7 @@
       if (game.state === 'play' && game.player.alive) {
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
           const b = game.player.bank;
-          const pname = b <= -0.6 ? 'player_left2' : b < -0.25 ? 'player_left' : b >= 0.6 ? 'player_right2' : b > 0.25 ? 'player_right' : 'player';
+          const pname = b <= -0.55 ? 'player_left2' : b < -0.2 ? 'player_left' : b >= 0.55 ? 'player_right2' : b > 0.2 ? 'player_right' : 'player';
           if (spriteReady(pname)) {
             const img = game.sprites[pname];
             const s = 36 / img.naturalWidth;
@@ -718,6 +719,10 @@
       }
       ctx.globalAlpha = 1;
       ctx.restore();
+      if (game.state === 'play' && game.player.focus && !game.paused) {
+        ctx.fillStyle = 'rgba(80,140,255,0.08)';
+        ctx.fillRect(0, 0, W, H);
+      }
       drawHUD(ctx);
       if (game.state === 'title') drawTitle(ctx);
       else if (game.state === 'over') drawOver(ctx);
