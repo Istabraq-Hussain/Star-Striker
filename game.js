@@ -22,7 +22,18 @@
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
       player: null, keys: {},
       bullets: [], ebullets: [], enemies: [], parts: [], powerups: [], spawns: [],
-      boss: null, stars: [],
+      boss: null, stars: [], sprites: {}, blasts: [],
+    };
+    if (typeof Image !== 'undefined') {
+      for (const name of ['player', 'bullet', 'special', 'blast']) {
+        const img = new Image();
+        img.src = 'assets/sprites/' + name + '.png';
+        game.sprites[name] = img;
+      }
+    }
+    const spriteReady = name => {
+      const i = game.sprites[name];
+      return !!(i && i.complete && i.naturalWidth > 0);
     };
     for (let i = 0; i < 90; i++) game.stars.push({ x: rand(0, W), y: rand(0, H), z: [0.3, 0.6, 1][i % 3] });
     try { game.hi = parseInt((storage && storage.getItem('starstriker_hi')) || '0', 10) || 0; } catch (e) { game.hi = 0; }
@@ -78,7 +89,7 @@
       game.score = 0; game.lives = 3; game.bombs = 3; game.weapon = 1;
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
-      game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null;
+      game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
       game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true;
     }
 
@@ -105,6 +116,7 @@
     function useBomb() {
       if (game.bombs <= 0) return;
       game.bombs--; game.shake = 22;
+      game.blasts.push({ x: game.player.x, y: game.player.y, t: 0.6, max: 0.6 });
       for (const b of game.ebullets) burst(b.x, b.y, '#9df', 2);
       game.ebullets.length = 0;
       for (const e of game.enemies) { e.hp -= 5; if (e.hp <= 0) killEnemy(e); }
@@ -218,6 +230,8 @@
         pt.t -= dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.98; pt.vy *= 0.98;
       }
       game.parts = game.parts.filter(p => p.t > 0);
+      for (const bl of game.blasts) bl.t -= dt;
+      game.blasts = game.blasts.filter(bl => bl.t > 0);
       game.shake = Math.max(0, game.shake - 34 * dt);
 
       if (game.state !== 'play') return;
@@ -605,12 +619,51 @@
         ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
       }
       for (const bl of game.bullets) {
-        ctx.fillStyle = 'rgba(125,249,255,0.35)'; ctx.fillRect(bl.x - 3, bl.y - 10, 6, 18);
-        ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(bl.x - 1, bl.y - 6, 2, 10);
+        const heavy = game.weapon >= 3 && spriteReady('special');
+        const img = heavy ? game.sprites.special : game.sprites.bullet;
+        if (spriteReady(heavy ? 'special' : 'bullet')) {
+          const ang = Math.atan2(bl.vy, bl.vx) + Math.PI / 2;
+          const bw = heavy ? 9 : 6, bh = heavy ? 20 : 15;
+          ctx.save(); ctx.translate(bl.x, bl.y); ctx.rotate(ang);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, -bw / 2, -bh / 2, bw, bh);
+          ctx.restore();
+        } else if (heavy) {
+          ctx.fillStyle = '#ffd23f'; ctx.fillRect(bl.x - 3, bl.y - 9, 6, 18);
+        } else {
+          ctx.fillStyle = 'rgba(125,249,255,0.35)'; ctx.fillRect(bl.x - 3, bl.y - 10, 6, 18);
+          ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14);
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(bl.x - 1, bl.y - 6, 2, 10);
+        }
       }
       if (game.state === 'play' && game.player.alive) {
-        if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) drawPlayer(ctx, game.player);
+        if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
+          if (spriteReady('player')) {
+            const img = game.sprites.player;
+            const s = 36 / img.naturalWidth;
+            ctx.save(); ctx.translate(game.player.x, game.player.y);
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2 + 2, img.naturalWidth * s, img.naturalHeight * s);
+            if (game.player.focus) {
+              ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.arc(0, 0, game.player.r, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.restore();
+          } else {
+            drawPlayer(ctx, game.player);
+          }
+        }
+      }
+      if (spriteReady('blast')) {
+        const img = game.sprites.blast;
+        for (const bl of game.blasts) {
+          const k = 1 - bl.t / bl.max;
+          const size = 24 + k * 72;
+          ctx.globalAlpha = bl.t / bl.max;
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, bl.x - size / 2, bl.y - size / 2, size, size);
+        }
+        ctx.globalAlpha = 1;
       }
       for (const pt of game.parts) {
         ctx.globalAlpha = Math.max(0, pt.t / pt.max);
