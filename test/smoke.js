@@ -64,6 +64,12 @@ assert(g.wave >= 2, 'waves advance (reached wave ' + g.wave + ' in ' + frames + 
 assert(maxEB > 0, 'enemies fire bullets (max ' + maxEB + ' on screen)');
 assert(sawScore > 0, 'kills score points (score ' + sawScore + ')');
 
+// scout enemy spawns and renders
+g.spawns.push({ type: 'scout', x: 100, y: -20, t: 0.01 });
+step(g, 5);
+assert(g.enemies.some(e => e.type === 'scout'), 'scout enemy spawns');
+g.render(ctxStub);
+
 // 4. bomb clears enemy bullets
 g.ebullets.push({ x: 100, y: 100, vx: 0, vy: 100, r: 4 });
 const bombsBefore = g.bombs;

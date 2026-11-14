@@ -11,6 +11,7 @@
     weaver: { hp: 2, r: 12, speed: 75, score: 200, color: '#ffd23f' },
     tank:   { hp: 6, r: 18, speed: 42, score: 400, color: '#ff7a3d' },
     gunner: { hp: 3, r: 14, speed: 60, score: 300, color: '#8d6bff' },
+    scout:  { hp: 2, r: 13, speed: 115, score: 150, color: '#a855f7' },
   };
 
   function createGame(opts) {
@@ -22,7 +23,18 @@
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
       player: null, keys: {},
       bullets: [], ebullets: [], enemies: [], parts: [], powerups: [], spawns: [],
-      boss: null, stars: [],
+      boss: null, stars: [], sprites: {}, blasts: [],
+    };
+    if (typeof Image !== 'undefined') {
+      for (const name of ['player', 'bullet', 'special', 'blast', 'scout']) {
+        const img = new Image();
+        img.src = 'assets/sprites/' + name + '.png';
+        game.sprites[name] = img;
+      }
+    }
+    const spriteReady = name => {
+      const i = game.sprites[name];
+      return !!(i && i.complete && i.naturalWidth > 0);
     };
     for (let i = 0; i < 90; i++) game.stars.push({ x: rand(0, W), y: rand(0, H), z: [0.3, 0.6, 1][i % 3] });
     try { game.hi = parseInt((storage && storage.getItem('starstriker_hi')) || '0', 10) || 0; } catch (e) { game.hi = 0; }
@@ -78,7 +90,7 @@
       game.score = 0; game.lives = 3; game.bombs = 3; game.weapon = 1;
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
-      game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null;
+      game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
       game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true;
     }
 
@@ -105,6 +117,7 @@
     function useBomb() {
       if (game.bombs <= 0) return;
       game.bombs--; game.shake = 22;
+      game.blasts.push({ x: game.player.x, y: game.player.y, t: 0.6, max: 0.6 });
       for (const b of game.ebullets) burst(b.x, b.y, '#9df', 2);
       game.ebullets.length = 0;
       for (const e of game.enemies) { e.hp -= 5; if (e.hp <= 0) killEnemy(e); }
@@ -173,10 +186,10 @@
       if (n % 5 === 0) { game.boss = makeBoss(n); sfx.boss(); return; }
       const pats = [
         () => { for (let i = 0; i < 5; i++) s.push({ type: 'drone', x: 60 + i * 90, y: -40 - i * 26, t: 0.2 + i * 0.16 }); },
-        () => { for (let i = 0; i < 7; i++) s.push({ type: 'drone', x: 40 + i * 66, y: -40, t: i * 0.12 }); },
+        () => { for (let i = 0; i < 7; i++) s.push({ type: 'drone', x: 40 + i * 66, y: -40, t: i * 0.12 }); for (let i = 0; i < 3; i++) s.push({ type: 'scout', x: 100 + i * 140, y: -30 - i * 40, t: 0.5 + i * 0.3 }); },
         () => { for (let i = 0; i < 3; i++) s.push({ type: 'tank', x: 100 + i * 140, y: -70 - i * 50, t: i * 0.5 }); s.push({ type: 'weaver', x: W / 2, y: -220, t: 0.3 }); },
         () => { for (let i = 0; i < 4; i++) s.push({ type: 'gunner', x: 80 + i * 105, y: -50 - i * 60, t: i * 0.35 }); },
-        () => { for (let i = 0; i < 9; i++) s.push({ type: 'drone', x: 50 + (i % 3) * 190, y: -40 - Math.floor(i / 3) * 70, t: i * 0.12 }); s.push({ type: 'tank', x: W / 2, y: -260, t: 0.6 }); },
+        () => { for (let i = 0; i < 9; i++) s.push({ type: 'drone', x: 50 + (i % 3) * 190, y: -40 - Math.floor(i / 3) * 70, t: i * 0.12 }); s.push({ type: 'tank', x: W / 2, y: -260, t: 0.6 }); for (let i = 0; i < 2; i++) s.push({ type: 'scout', x: 120 + i * 240, y: -120 - i * 50, t: 0.4 + i * 0.4 }); },
       ];
       pats[(n - 1) % pats.length]();
     }
@@ -218,6 +231,8 @@
         pt.t -= dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.98; pt.vy *= 0.98;
       }
       game.parts = game.parts.filter(p => p.t > 0);
+      for (const bl of game.blasts) bl.t -= dt;
+      game.blasts = game.blasts.filter(bl => bl.t > 0);
       game.shake = Math.max(0, game.shake - 34 * dt);
 
       if (game.state !== 'play') return;
@@ -251,6 +266,7 @@
         else if (e.type === 'weaver') { e.y += e.speed * 0.7 * dt; e.x = e.baseX + Math.sin(e.t * 3 + e.phase) * 95; }
         else if (e.type === 'tank') { e.y += e.speed * dt; e.x += clamp(game.player.x - e.x, -40, 40) * dt; }
         else if (e.type === 'gunner') { if (e.y < 110) e.y += e.speed * dt; else e.x += Math.sin(e.t * 2.2 + e.phase) * 90 * dt; }
+        else if (e.type === 'scout') { e.y += e.speed * dt; e.x += (Math.sin(e.t * 3 + e.phase) * 60 + clamp(game.player.x - e.x, -25, 25)) * dt; }
         e.fireCd -= dt;
         if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6); }
         if (e.y > H + 50) e.dead = true;
@@ -386,7 +402,24 @@
 
     function drawEnemy(ctx, e) {
       ctx.save(); ctx.translate(e.x, e.y);
-      if (e.type === 'drone') {
+      if (e.type === 'scout') {
+        if (spriteReady('scout')) {
+          const img = game.sprites.scout;
+          const s = 30 / img.naturalWidth;
+          ctx.save(); ctx.rotate(Math.sin(e.t * 3 + e.phase) * 0.2);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath(); ctx.ellipse(0, 0, e.r + 5, e.r, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#3b0764'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath(); ctx.arc(0, -3, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#3b0764';
+          ctx.beginPath(); ctx.arc(0, -3, 2, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (e.type === 'drone') {
         ctx.rotate(e.t * 2);
         ctx.fillStyle = 'rgba(255,95,208,0.25)';
         ctx.beginPath(); ctx.arc(0, 0, e.r + 5, 0, Math.PI * 2); ctx.fill();
@@ -605,12 +638,51 @@
         ctx.fillStyle = '#ffd0da'; ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r * 0.45, 0, Math.PI * 2); ctx.fill();
       }
       for (const bl of game.bullets) {
-        ctx.fillStyle = 'rgba(125,249,255,0.35)'; ctx.fillRect(bl.x - 3, bl.y - 10, 6, 18);
-        ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(bl.x - 1, bl.y - 6, 2, 10);
+        const heavy = game.weapon >= 3 && spriteReady('special');
+        const img = heavy ? game.sprites.special : game.sprites.bullet;
+        if (spriteReady(heavy ? 'special' : 'bullet')) {
+          const ang = Math.atan2(bl.vy, bl.vx) + Math.PI / 2;
+          const bw = heavy ? 9 : 6, bh = heavy ? 20 : 15;
+          ctx.save(); ctx.translate(bl.x, bl.y); ctx.rotate(ang);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, -bw / 2, -bh / 2, bw, bh);
+          ctx.restore();
+        } else if (heavy) {
+          ctx.fillStyle = '#ffd23f'; ctx.fillRect(bl.x - 3, bl.y - 9, 6, 18);
+        } else {
+          ctx.fillStyle = 'rgba(125,249,255,0.35)'; ctx.fillRect(bl.x - 3, bl.y - 10, 6, 18);
+          ctx.fillStyle = '#7df9ff'; ctx.fillRect(bl.x - 2, bl.y - 8, 4, 14);
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(bl.x - 1, bl.y - 6, 2, 10);
+        }
       }
       if (game.state === 'play' && game.player.alive) {
-        if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) drawPlayer(ctx, game.player);
+        if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
+          if (spriteReady('player')) {
+            const img = game.sprites.player;
+            const s = 36 / img.naturalWidth;
+            ctx.save(); ctx.translate(game.player.x, game.player.y);
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2 + 2, img.naturalWidth * s, img.naturalHeight * s);
+            if (game.player.focus) {
+              ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.arc(0, 0, game.player.r, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.restore();
+          } else {
+            drawPlayer(ctx, game.player);
+          }
+        }
+      }
+      if (spriteReady('blast')) {
+        const img = game.sprites.blast;
+        for (const bl of game.blasts) {
+          const k = 1 - bl.t / bl.max;
+          const size = 24 + k * 72;
+          ctx.globalAlpha = bl.t / bl.max;
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, bl.x - size / 2, bl.y - size / 2, size, size);
+        }
+        ctx.globalAlpha = 1;
       }
       for (const pt of game.parts) {
         ctx.globalAlpha = Math.max(0, pt.t / pt.max);
