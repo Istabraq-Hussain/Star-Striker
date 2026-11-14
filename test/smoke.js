@@ -47,6 +47,12 @@ g.setKey(' ', true);
 for (let i = 0; i < 60; i++) { g.update(1 / 60); maxBullets = Math.max(maxBullets, g.bullets.length); }
 assert(maxBullets > 0, 'holding Space fires bullets');
 
+// focus mode (Shift) slows the whole world, not just the player
+g.enemies.push({ type: 'drone', x: 100, y: 50, baseX: 100, r: 12, hp: 1, maxHp: 1, speed: 95, score: 100, color: '#ff5fd0', t: 0, phase: 0, fireCd: 999, fireMul: 1, dead: false });
+const fy0 = g.enemies[0].y; step(g, 60); const dyNormal = g.enemies[0].y - fy0;
+g.setKey('shift', true); const fy1 = g.enemies[0].y; step(g, 60); const dyFocus = g.enemies[0].y - fy1; g.setKey('shift', false);
+assert(dyFocus < dyNormal * 0.6, 'focus mode slows enemies too (dy ' + dyNormal.toFixed(1) + ' -> ' + dyFocus.toFixed(1) + ')');
+
 // 3. waves advance + enemy bullets appear (invincible so the run is deterministic)
 let maxEB = 0, sawScore = 0;
 g.player.inv = 9999;
