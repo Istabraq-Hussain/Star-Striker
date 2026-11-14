@@ -25,6 +25,7 @@
       W, H, state: 'title', paused: false, sound: true,
       time: 0, shake: 0, score: 0, hi: 0, wave: 0, waveTimer: 0,
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
+      level: 1, focusMeter: 100, focusLock: false,
       player: null, keys: {},
       bullets: [], ebullets: [], enemies: [], parts: [], powerups: [], spawns: [],
       boss: null, stars: [], sprites: {}, blasts: [],
@@ -93,9 +94,17 @@
       game.state = 'play'; game.paused = false;
       game.score = 0; game.lives = 3; game.bombs = 3; game.weapon = 1;
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
+      game.level = 1; game.focusMeter = 100; game.focusLock = false;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
       game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
       game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true; game.player.bank = 0;
+    }
+
+    function nextLevel() {
+      game.level++;
+      game.state = 'play';
+      game.paused = false;
+      game.waveTimer = 2.5;
     }
 
     function gameOver() {
@@ -153,7 +162,7 @@
     }
 
     function makeBoss(wave) {
-      const hp = 220 + wave * 60;
+      const hp = 220 + wave * 60 + (game.level - 1) * 120;
       return { x: W / 2, y: -90, targetY: 120, r: 46, hp, maxHp: hp, t: 0, pattern: -1, patternT: 2, fireCd: 1, summonT: 6, dead: false };
     }
 
@@ -183,6 +192,7 @@
       burst(b.x, b.y, '#ff3d5e', 60); burst(b.x, b.y, '#ffd23f', 40);
       game.shake = 26; sfx.bomb();
       game.waveTimer = 3;
+      if (game.bossKills >= game.level) game.state = 'clear';
     }
 
     function spawnWave(n) {
@@ -200,10 +210,10 @@
 
     function makeEnemy(sp) {
       const base = TYPES[sp.type];
-      const hp = base.hp + Math.floor(game.wave / 3);
+      const hp = base.hp + Math.floor(game.wave / 3) + (game.level - 1);
       return {
         type: sp.type, x: sp.x, y: sp.y, baseX: sp.x, r: base.r, hp, maxHp: hp,
-        speed: base.speed * (1 + game.wave * 0.04), score: base.score, color: base.color,
+        speed: base.speed * (1 + game.wave * 0.04) * (1 + (game.level - 1) * 0.12), score: base.score, color: base.color,
         t: 0, phase: rand(0, 6.28), fireCd: rand(0.6, 2.2), fireMul: base.fire || 1, dead: false,
       };
     }
@@ -248,7 +258,14 @@
       let dx = (k.right ? 1 : 0) - (k.left ? 1 : 0);
       let dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
       if (dx && dy) { dx *= 0.7071; dy *= 0.7071; }
-      p.focus = !!k.shift;
+      if (k.shift && game.focusMeter > 0 && !game.focusLock) p.focus = true; else p.focus = false;
+      if (p.focus) {
+        game.focusMeter = Math.max(0, game.focusMeter - 30 * dt);
+        if (game.focusMeter <= 0) game.focusLock = true;
+      } else {
+        game.focusMeter = Math.min(100, game.focusMeter + 14 * dt);
+        if (game.focusLock && game.focusMeter >= 35) game.focusLock = false;
+      }
       p.bank += (dx - p.bank) * Math.min(1, dt * 7);
       const sp = p.focus ? 120 : 265;
       p.x = clamp(p.x + dx * sp * dt, 14, W - 14);
@@ -369,6 +386,7 @@
       if (down) {
         game.keys[k] = true;
         if (game.state === 'title' || game.state === 'over') { if (n === 'enter') startGame(); return; }
+        if (game.state === 'clear') { if (n === 'enter') nextLevel(); return; }
         if (game.state !== 'play') return;
         if (n === 'p') { game.paused = !game.paused; return; }
         if (n === 'm') { game.sound = !game.sound; return; }
@@ -565,7 +583,14 @@
       ctx.textAlign = 'center'; ctx.fillStyle = '#ffd23f';
       ctx.fillText('HI ' + String(game.hi).padStart(8, '0'), W / 2, 8);
       ctx.textAlign = 'right'; ctx.fillStyle = '#ff8fb0';
-      ctx.fillText('WAVE ' + game.wave, W - 10, 8);
+      ctx.fillText('LV' + game.level + ' WAVE ' + game.wave, W - 10, 8);
+      const fx = W / 2 - 50, fw = 100;
+      ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '9px monospace';
+      ctx.fillText('FOCUS', fx, H - 30);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(fx, H - 19, fw, 6);
+      ctx.fillStyle = game.focusMeter < 25 ? '#ff4d6d' : (game.player.focus ? '#7df9ff' : '#4a90d9');
+      ctx.fillRect(fx, H - 19, fw * (game.focusMeter / 100), 6);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(fx, H - 19, fw, 6);
       ctx.textAlign = 'left';
       for (let i = 0; i < game.lives; i++) {
         ctx.fillStyle = '#59f7ff';
@@ -624,6 +649,22 @@
       if (Math.floor(game.time * 2) % 2 === 0) {
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px monospace';
         ctx.fillText('PRESS ENTER TO RETRY', W / 2, H / 2 + 76);
+      }
+      ctx.restore();
+    }
+
+    function drawClear(ctx) {
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.shadowColor = '#7dff6a'; ctx.shadowBlur = 24;
+      ctx.fillStyle = '#7dff6a'; ctx.font = 'bold 34px monospace';
+      ctx.fillText('LEVEL ' + game.level + ' CLEAR!', W / 2, H / 2 - 30);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 16px monospace';
+      ctx.fillText('SCORE ' + String(game.score).padStart(8, '0'), W / 2, H / 2 + 12);
+      if (Math.floor(game.time * 2) % 2 === 0) {
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px monospace';
+        ctx.fillText('PRESS ENTER — LEVEL ' + (game.level + 1), W / 2, H / 2 + 52);
       }
       ctx.restore();
     }
@@ -726,6 +767,7 @@
       drawHUD(ctx);
       if (game.state === 'title') drawTitle(ctx);
       else if (game.state === 'over') drawOver(ctx);
+      else if (game.state === 'clear') drawClear(ctx);
       else if (game.paused) drawPaused(ctx);
     }
 
