@@ -66,8 +66,10 @@ assert(sawScore > 0, 'kills score points (score ' + sawScore + ')');
 
 // scout enemy spawns and renders
 g.spawns.push({ type: 'scout', x: 100, y: -20, t: 0.01 });
+g.spawns.push({ type: 'raider', x: 300, y: -20, t: 0.01 });
 step(g, 5);
 assert(g.enemies.some(e => e.type === 'scout'), 'scout enemy spawns');
+assert(g.enemies.some(e => e.type === 'raider'), 'raider (kitbash) enemy spawns');
 g.render(ctxStub);
 
 // 4. bomb clears enemy bullets
