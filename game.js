@@ -32,7 +32,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2']) {
+      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2', 'asteroid3', 'asteroid4', 'asteroid5', 'asteroid6', 'asteroid7']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -220,7 +220,7 @@
         type: sp.type, x: sp.x, y: sp.y, baseX: sp.x, r: base.r, hp, maxHp: hp,
         speed: base.speed * (1 + game.wave * 0.04) * (1 + (game.level - 1) * 0.12), score: base.score, color: base.color,
         t: 0, phase: rand(0, 6.28), fireCd: rand(0.6, 2.2), fireMul: base.fire || 1, dead: false,
-        variant: sp.type === 'asteroid' ? Math.floor(rand(0, 3)) : 0,
+        variant: sp.type === 'asteroid' ? Math.floor(rand(0, 8)) : 0,
       };
     }
 
