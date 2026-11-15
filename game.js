@@ -16,6 +16,7 @@
     stalker: { hp: 3, r: 14, speed: 70,  score: 350, color: '#4ade80', fire: 0.8 },
     brute:   { hp: 8, r: 20, speed: 35,  score: 600, color: '#60a5fa', fire: 0.7 },
     phantom: { hp: 2, r: 12, speed: 100, score: 300, color: '#e879f9', fire: 1.3 },
+    asteroid: { hp: 4, r: 16, speed: 30, score: 50, color: '#9a8c7a', fire: 999 },
   };
 
   function createGame(opts) {
@@ -31,7 +32,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom']) {
+      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -197,6 +198,10 @@
 
     function spawnWave(n) {
       const s = game.spawns;
+      if (game.level >= 2) {
+        const na = 2 + Math.min(3, game.level - 1);
+        for (let i = 0; i < na; i++) s.push({ type: 'asteroid', x: rand(40, W - 40), y: -rand(60, 300), t: rand(0.2, 2.5) });
+      }
       if (n % 5 === 0) { game.boss = makeBoss(n); sfx.boss(); return; }
       const pats = [
         () => { for (let i = 0; i < 5; i++) s.push({ type: 'drone', x: 60 + i * 90, y: -40 - i * 26, t: 0.2 + i * 0.16 }); for (let i = 0; i < 2; i++) s.push({ type: 'raider', x: 90 + i * 300, y: -30 - i * 50, t: 0.4 + i * 0.3 }); },
@@ -215,6 +220,7 @@
         type: sp.type, x: sp.x, y: sp.y, baseX: sp.x, r: base.r, hp, maxHp: hp,
         speed: base.speed * (1 + game.wave * 0.04) * (1 + (game.level - 1) * 0.12), score: base.score, color: base.color,
         t: 0, phase: rand(0, 6.28), fireCd: rand(0.6, 2.2), fireMul: base.fire || 1, dead: false,
+        variant: sp.type === 'asteroid' ? Math.floor(rand(0, 3)) : 0,
       };
     }
 
@@ -294,6 +300,7 @@
         else if (e.type === 'stalker') { if (e.y < 130) e.y += e.speed * wdt; else e.x += Math.sin(e.t * 2.5 + e.phase) * 110 * wdt; }
         else if (e.type === 'brute') { e.y += e.speed * wdt; e.x += clamp(game.player.x - e.x, -25, 25) * wdt; }
         else if (e.type === 'phantom') { e.y += e.speed * 0.8 * wdt; e.x = e.baseX + Math.sin(e.t * 4 + e.phase) * 110; }
+        else if (e.type === 'asteroid') { e.y += e.speed * wdt; e.x += Math.sin(e.t * 0.5 + e.phase) * 15 * wdt; }
         e.fireCd -= wdt;
         if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6) * e.fireMul; }
         if (e.y > H + 50) e.dead = true;
@@ -348,7 +355,7 @@
         game.ebullets = game.ebullets.filter(eb => !eb.dead);
         if (game.state === 'play' && p.inv <= 0) {
           for (const e of game.enemies) {
-            if (!e.dead && d2(e.x, e.y, p.x, p.y) < (e.r + p.r) * (e.r + p.r)) { killEnemy(e); hitPlayer(); break; }
+            if (!e.dead && d2(e.x, e.y, p.x, p.y) < (e.r + p.r) * (e.r + p.r)) { if (e.type !== 'asteroid') killEnemy(e); hitPlayer(); break; }
           }
           const bb = game.boss;
           if (game.state === 'play' && p.inv <= 0 && bb && d2(bb.x, bb.y, p.x, p.y) < (bb.r + p.r) * (bb.r + p.r)) hitPlayer();
@@ -430,12 +437,12 @@
 
     function drawEnemy(ctx, e) {
       ctx.save(); ctx.translate(e.x, e.y);
-      const simgName = 'enemy_' + e.type;
+      const simgName = e.type === 'asteroid' ? 'asteroid' + (e.variant || 0) : 'enemy_' + e.type;
       if (e.type !== 'scout' && spriteReady(simgName)) {
         const img = game.sprites[simgName];
         const s = (e.r * 2.6) / img.naturalWidth;
         ctx.save();
-        ctx.rotate(e.type === 'weaver' ? Math.sin(e.t * 6) * 0.35 : e.type === 'drone' ? e.t * 2 : 0);
+        ctx.rotate(e.type === 'weaver' ? Math.sin(e.t * 6) * 0.35 : e.type === 'drone' ? e.t * 2 : e.type === 'asteroid' ? e.t * 0.4 : 0);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
         ctx.restore();

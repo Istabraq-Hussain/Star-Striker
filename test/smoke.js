@@ -95,6 +95,15 @@ g.setKey('shift', true); step(g, 30);
 assert(g.player.focus === true, 'focus usable again after refill');
 g.setKey('shift', false);
 
+// asteroids only spawn from level 2 on
+g.level = 2; g.enemies.length = 0; g.spawns.length = 0; g.waveTimer = 0.01;
+step(g, 3);
+assert(g.spawns.some(s => s.type === 'asteroid') || g.enemies.some(e => e.type === 'asteroid'), 'asteroids spawn on level 2+');
+g.level = 1; g.enemies.length = 0; g.spawns.length = 0; g.waveTimer = 0.01;
+step(g, 3);
+assert(!g.spawns.some(s => s.type === 'asteroid') && !g.enemies.some(e => e.type === 'asteroid'), 'no asteroids on level 1');
+g.level = 1;
+
 // 4. bomb clears enemy bullets
 g.ebullets.push({ x: 100, y: 100, vx: 0, vy: 100, r: 4 });
 const bombsBefore = g.bombs;
