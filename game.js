@@ -395,7 +395,7 @@
         if (game.state === 'title' || game.state === 'over') { if (n === 'enter') startGame(); return; }
         if (game.state === 'clear') { if (n === 'enter') nextLevel(); return; }
         if (game.state !== 'play') return;
-        if (n === 'p') { game.paused = !game.paused; return; }
+        if (n === 'p' || n === 'escape') { game.paused = !game.paused; return; }
         if (n === 'm') { game.sound = !game.sound; return; }
         if (game.paused) return;
         if (n === 'x') useBomb();
@@ -610,8 +610,12 @@
       }
       ctx.fillStyle = '#7dff6a';
       for (let i = 0; i < game.weapon; i++) ctx.fillRect(W - 14 - i * 12, H - 28, 8, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(W - 40, 28, 30, 20);
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(W - 40, 28, 30, 20);
+      ctx.fillStyle = '#7df9ff';
+      ctx.fillRect(W - 33, 33, 5, 10); ctx.fillRect(W - 24, 33, 5, 10);
       ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '11px monospace';
-      ctx.fillText('ARROWS/WASD MOVE · SPACE FIRE · SHIFT FOCUS · X BOMB · P PAUSE · M SOUND', W - 10, H - 12);
+      ctx.fillText('ARROWS/WASD MOVE · SPACE FIRE · SHIFT FOCUS · X BOMB · P/ESC PAUSE · M SOUND', W - 10, H - 12);
       ctx.restore();
       if (game.boss) {
         const b = game.boss;
@@ -636,7 +640,7 @@
         ctx.fillText('PRESS ENTER', W / 2, H / 2 + 10);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '13px monospace';
-      const lines = ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (TIGHT HITBOX)', 'X — BOMB', 'P — PAUSE · M — SOUND'];
+      const lines = ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (SLOW-MO, DRAINS BAR)', 'X — BOMB', 'P / ESC OR ❚❚ BUTTON — PAUSE · M — SOUND'];
       lines.forEach((l, i) => ctx.fillText(l, W / 2, H / 2 + 50 + i * 20));
       ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 14px monospace';
       ctx.fillText('HI-SCORE ' + String(game.hi).padStart(8, '0'), W / 2, H / 2 + 50 + lines.length * 20 + 10);
@@ -733,8 +737,9 @@
         if (!(game.player.inv > 0 && Math.floor(game.time * 20) % 2 === 0)) {
           const b = game.player.bank;
           const pname = b <= -0.55 ? 'player_left2' : b < -0.2 ? 'player_left' : b >= 0.55 ? 'player_right2' : b > 0.2 ? 'player_right' : 'player';
-          if (spriteReady(pname)) {
-            const img = game.sprites[pname];
+          const useName = spriteReady(pname) ? pname : (spriteReady('player') ? 'player' : null);
+          if (useName) {
+            const img = game.sprites[useName];
             const s = 36 / img.naturalWidth;
             ctx.save(); ctx.translate(game.player.x, game.player.y);
             ctx.imageSmoothingEnabled = false;
@@ -798,6 +803,12 @@
       game.handleKey(n, true);
     });
     window.addEventListener('keyup', e => { game.handleKey(e.key.toLowerCase(), false); });
+    canvas.addEventListener('mousedown', e => {
+      const r = canvas.getBoundingClientRect();
+      const x = (e.clientX - r.left) * (W / r.width);
+      const y = (e.clientY - r.top) * (H / r.height);
+      if (game.state === 'play' && x >= W - 40 && x <= W - 10 && y >= 28 && y <= 48) game.handleKey('p', true);
+    });
     let last = performance.now();
     function frame(now) {
       let dt = (now - last) / 1000; last = now;

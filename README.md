@@ -20,7 +20,7 @@ python3 -m http.server 8000
 | Space (hold) | Fire |
 | Shift (hold) | Focus mode — slow movement, shows your tiny hitbox, slows the whole world to 45%; drains the FOCUS bar (refills when not used, locks at 0 until refilled) |
 | X | Bomb (clears enemy bullets, damages everything on screen) |
-| P | Pause / resume |
+| P or Esc (or click the ❚❚ button top-right) | Pause / resume |
 | M | Toggle sound |
 | Enter | Start / retry |
 

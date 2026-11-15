@@ -116,6 +116,10 @@ assert(g.paused === true, 'P pauses');
 step(g, 5);
 g.press('p');
 assert(g.paused === false, 'P resumes while paused');
+g.press('escape');
+assert(g.paused === true, 'Esc pauses too');
+g.press('escape');
+assert(g.paused === false, 'Esc resumes');
 
 // 6. boss on wave 5 with bullet patterns
 g.enemies.length = 0; g.spawns.length = 0; g.boss = null;
