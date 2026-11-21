@@ -150,6 +150,12 @@ g.render(ctxStub);
 g.press('enter');
 assert(g.state === 'play' && g.level === 2, 'Enter continues to level 2 after the clear screen');
 
+// level 2 boss is the sprite ship with animated flame
+g.wave = 9; g.waveTimer = 0.01; g.enemies.length = 0; g.spawns.length = 0; g.ebullets.length = 0;
+step(g, 5);
+assert(g.boss && g.boss.sprite === true, 'level 2 boss uses the sprite ship');
+g.render(ctxStub);
+
 // 8. game over + hi-score persisted
 g.lives = 1; g.player.inv = 0;
 g.ebullets.push({ x: g.player.x, y: g.player.y, vx: 0, vy: 0, r: 4 });

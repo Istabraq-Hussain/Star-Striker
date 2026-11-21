@@ -32,7 +32,7 @@
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2', 'asteroid3', 'asteroid4', 'asteroid5', 'asteroid6', 'asteroid7']) {
+      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2', 'asteroid3', 'asteroid4', 'asteroid5', 'asteroid6', 'asteroid7', 'boss', 'flame0', 'flame1', 'flame2']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -164,7 +164,7 @@
 
     function makeBoss(wave) {
       const hp = 220 + wave * 60 + (game.level - 1) * 120;
-      return { x: W / 2, y: -90, targetY: 120, r: 46, hp, maxHp: hp, t: 0, pattern: -1, patternT: 2, fireCd: 1, summonT: 6, dead: false };
+      return { x: W / 2, y: -90, targetY: 120, r: 46, hp, maxHp: hp, t: 0, pattern: -1, patternT: 2, fireCd: 1, summonT: 6, dead: false, sprite: game.level >= 2 };
     }
 
     function radial(b) {
@@ -537,6 +537,23 @@
 
     function drawBoss(ctx, b) {
       ctx.save(); ctx.translate(b.x, b.y);
+      if (b.sprite && spriteReady('boss')) {
+        const img = game.sprites.boss;
+        const s = (b.r * 2) / img.naturalWidth;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
+        const shipH = img.naturalHeight * s;
+        const fi = Math.floor(game.time * 10) % 3;
+        if (spriteReady('flame' + fi)) {
+          const f = game.sprites['flame' + fi];
+          const fs = (b.r * 1.6) / f.naturalWidth;
+          ctx.save(); ctx.translate(0, shipH / 2 - 6);
+          ctx.drawImage(f, -f.naturalWidth * fs / 2, 0, f.naturalWidth * fs, f.naturalHeight * fs);
+          ctx.restore();
+        }
+        ctx.restore();
+        return;
+      }
       const aura = ctx.createRadialGradient(0, 0, b.r * 0.4, 0, 0, b.r * 1.6);
       aura.addColorStop(0, 'rgba(255,60,90,0.35)'); aura.addColorStop(1, 'rgba(255,60,90,0)');
       ctx.fillStyle = aura;
