@@ -71,7 +71,6 @@ func _ready() -> void:
 		if a.begins_with("--level="):
 			start_level = clampi(a.split("=")[1].to_int(), 1, 99)
 	level = start_level
-	hi = int(ProjectSettings.get_setting("user://hi", 0)) if false else 0
 	# persistent hi-score via a simple user file
 	var f := FileAccess.open("user://hiscore.txt", FileAccess.READ)
 	if f:
@@ -242,12 +241,14 @@ func _process(delta: float) -> void:
 		_kill_boss()
 	# player hit
 	if p["inv"] <= 0:
+		var hit := false
 		for e in enemies:
 			if not e["dead"] and Vector2(e["x"], e["y"]).distance_squared_to(Vector2(p["x"], p["y"])) < (e["r"] + p["r"]) ** 2:
 				if e["type"] != "asteroid": _kill_enemy(e)
 				_hit_player()
+				hit = true
 				break
-		else:
+		if not hit:
 			for b in ebullets:
 				if Vector2(b["x"], b["y"]).distance_squared_to(Vector2(p["x"], p["y"])) < (b["r"] + p["r"]) ** 2:
 					b["hit"] = true
@@ -314,21 +315,36 @@ func _spawn_wave(n: int) -> void:
 		boss = _make_boss(n)
 		return
 	var pats := [
-		func(): for i in 5: spawns.append({"type": "drone", "x": 60 + i * 90.0, "y": -40 - i * 26.0, "t": 0.2 + i * 0.16})
-			; for i in 2: spawns.append({"type": "raider", "x": 90 + i * 300.0, "y": -30 - i * 50.0, "t": 0.4 + i * 0.3}),
-		func(): for i in 7: spawns.append({"type": "drone", "x": 40 + i * 66.0, "y": -40.0, "t": i * 0.12})
-			; for i in 3: spawns.append({"type": "scout", "x": 100 + i * 140.0, "y": -30 - i * 40.0, "t": 0.5 + i * 0.3}),
-		func(): for i in 3: spawns.append({"type": "tank", "x": 100 + i * 140.0, "y": -70 - i * 50.0, "t": i * 0.5})
-			; spawns.append({"type": "weaver", "x": W / 2.0, "y": -220.0, "t": 0.3})
-			; spawns.append({"type": "brute", "x": W / 2.0, "y": -320.0, "t": 0.8})
-			; spawns.append({"type": "phantom", "x": 120.0, "y": -180.0, "t": 0.5}),
-		func(): for i in 4: spawns.append({"type": "gunner", "x": 80 + i * 105.0, "y": -50 - i * 60.0, "t": i * 0.35})
-			; for i in 2: spawns.append({"type": "stalker", "x": 110 + i * 260.0, "y": -40 - i * 60.0, "t": 0.3 + i * 0.35}),
-		func(): for i in 9: spawns.append({"type": "drone", "x": 50 + (i % 3) * 190.0, "y": -40 - (i / 3) * 70.0, "t": i * 0.12})
-			; spawns.append({"type": "tank", "x": W / 2.0, "y": -260.0, "t": 0.6})
-			; for i in 2: spawns.append({"type": "scout", "x": 120 + i * 240.0, "y": -120 - i * 50.0, "t": 0.4 + i * 0.4})
-			; for i in 2: spawns.append({"type": "raider", "x": 150 + i * 180.0, "y": -140 - i * 60.0, "t": 0.5 + i * 0.4})
-			; spawns.append({"type": "phantom", "x": W - 120.0, "y": -200.0, "t": 0.7}),
+		func():
+			for i in 5:
+				spawns.append({"type": "drone", "x": 60 + i * 90.0, "y": -40 - i * 26.0, "t": 0.2 + i * 0.16})
+			for i in 2:
+				spawns.append({"type": "raider", "x": 90 + i * 300.0, "y": -30 - i * 50.0, "t": 0.4 + i * 0.3}),
+		func():
+			for i in 7:
+				spawns.append({"type": "drone", "x": 40 + i * 66.0, "y": -40.0, "t": i * 0.12})
+			for i in 3:
+				spawns.append({"type": "scout", "x": 100 + i * 140.0, "y": -30 - i * 40.0, "t": 0.5 + i * 0.3}),
+		func():
+			for i in 3:
+				spawns.append({"type": "tank", "x": 100 + i * 140.0, "y": -70 - i * 50.0, "t": i * 0.5})
+			spawns.append({"type": "weaver", "x": W / 2.0, "y": -220.0, "t": 0.3})
+			spawns.append({"type": "brute", "x": W / 2.0, "y": -320.0, "t": 0.8})
+			spawns.append({"type": "phantom", "x": 120.0, "y": -180.0, "t": 0.5}),
+		func():
+			for i in 4:
+				spawns.append({"type": "gunner", "x": 80 + i * 105.0, "y": -50 - i * 60.0, "t": i * 0.35})
+			for i in 2:
+				spawns.append({"type": "stalker", "x": 110 + i * 260.0, "y": -40 - i * 60.0, "t": 0.3 + i * 0.35}),
+		func():
+			for i in 9:
+				spawns.append({"type": "drone", "x": 50 + (i % 3) * 190.0, "y": -40 - (i / 3) * 70.0, "t": i * 0.12})
+			spawns.append({"type": "tank", "x": W / 2.0, "y": -260.0, "t": 0.6})
+			for i in 2:
+				spawns.append({"type": "scout", "x": 120 + i * 240.0, "y": -120 - i * 50.0, "t": 0.4 + i * 0.4})
+			for i in 2:
+				spawns.append({"type": "raider", "x": 150 + i * 180.0, "y": -140 - i * 60.0, "t": 0.5 + i * 0.4})
+			spawns.append({"type": "phantom", "x": W - 120.0, "y": -200.0, "t": 0.7}),
 	]
 	pats[(n - 1) % pats.size()].call()
 
