@@ -1,0 +1,21 @@
+; Godot 4 project — Star Striker (port of the web build)
+; Engine version: 4.x
+
+config_version=5
+
+[application]
+
+config/name="Star Striker"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=480
+window/size/viewport_height=640
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
