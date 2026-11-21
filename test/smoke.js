@@ -31,6 +31,11 @@ function step(g, n, dt) {
 
 const g = createGame({ storage });
 
+// start-level override (?level=2 / key 2)
+const gStart = createGame({ storage, startLevel: 2 });
+gStart.press('enter');
+assert(gStart.level === 2, 'startLevel option starts at level 2');
+
 // 1. title -> play
 assert(g.state === 'title', 'starts on title screen');
 g.render(ctxStub);
@@ -71,6 +76,7 @@ assert(maxEB > 0, 'enemies fire bullets (max ' + maxEB + ' on screen)');
 assert(sawScore > 0, 'kills score points (score ' + sawScore + ')');
 
 // scout enemy spawns and renders
+g.player.inv = 9999;
 g.spawns.push({ type: 'scout', x: 100, y: -20, t: 0.01 });
 g.spawns.push({ type: 'raider', x: 300, y: -20, t: 0.01 });
 step(g, 5);
@@ -149,6 +155,12 @@ assert(g.state === 'clear', 'killing the first boss finishes level 1 (LEVEL CLEA
 g.render(ctxStub);
 g.press('enter');
 assert(g.state === 'play' && g.level === 2, 'Enter continues to level 2 after the clear screen');
+
+// level 2 boss is the sprite ship with animated flame
+g.wave = 9; g.waveTimer = 0.01; g.enemies.length = 0; g.spawns.length = 0; g.ebullets.length = 0;
+step(g, 5);
+assert(g.boss && g.boss.sprite === true, 'level 2 boss uses the sprite ship');
+g.render(ctxStub);
 
 // 8. game over + hi-score persisted
 g.lives = 1; g.player.inv = 0;

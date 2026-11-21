@@ -22,17 +22,19 @@
   function createGame(opts) {
     opts = opts || {};
     const storage = opts.storage || (typeof root.localStorage !== 'undefined' ? root.localStorage : null);
+    const qs = (typeof location !== 'undefined') ? new URLSearchParams(location.search) : null;
+    const startLevel = Math.min(99, Math.max(1, parseInt((opts && opts.startLevel) || (qs && qs.get('level')), 10) || 1));
     const game = {
       W, H, state: 'title', paused: false, sound: true,
       time: 0, shake: 0, score: 0, hi: 0, wave: 0, waveTimer: 0,
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
-      level: 1, focusMeter: 100, focusLock: false,
+      level: startLevel, startLevel, focusMeter: 100, focusLock: false,
       player: null, keys: {},
       bullets: [], ebullets: [], enemies: [], parts: [], powerups: [], spawns: [],
       boss: null, stars: [], sprites: {}, blasts: [],
     };
     if (typeof Image !== 'undefined') {
-      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2', 'asteroid3', 'asteroid4', 'asteroid5', 'asteroid6', 'asteroid7']) {
+      for (const name of ['player', 'player_left', 'player_left2', 'player_right', 'player_right2', 'bullet', 'special', 'blast', 'scout', 'ebullet', 'enemy_drone', 'enemy_weaver', 'enemy_tank', 'enemy_gunner', 'enemy_raider', 'enemy_stalker', 'enemy_brute', 'enemy_phantom', 'asteroid0', 'asteroid1', 'asteroid2', 'asteroid3', 'asteroid4', 'asteroid5', 'asteroid6', 'asteroid7', 'boss', 'flame0', 'flame1', 'flame2']) {
         const img = new Image();
         img.src = 'assets/sprites/' + name + '.png';
         game.sprites[name] = img;
@@ -95,7 +97,7 @@
       game.state = 'play'; game.paused = false;
       game.score = 0; game.lives = 3; game.bombs = 3; game.weapon = 1;
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
-      game.level = 1; game.focusMeter = 100; game.focusLock = false;
+      game.level = game.startLevel; game.focusMeter = 100; game.focusLock = false;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
       game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
       game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true; game.player.bank = 0;
@@ -164,7 +166,7 @@
 
     function makeBoss(wave) {
       const hp = 220 + wave * 60 + (game.level - 1) * 120;
-      return { x: W / 2, y: -90, targetY: 120, r: 46, hp, maxHp: hp, t: 0, pattern: -1, patternT: 2, fireCd: 1, summonT: 6, dead: false };
+      return { x: W / 2, y: -90, targetY: 120, r: 46, hp, maxHp: hp, t: 0, pattern: -1, patternT: 2, fireCd: 1, summonT: 6, dead: false, sprite: game.level >= 2 };
     }
 
     function radial(b) {
@@ -193,7 +195,7 @@
       burst(b.x, b.y, '#ff3d5e', 60); burst(b.x, b.y, '#ffd23f', 40);
       game.shake = 26; sfx.bomb();
       game.waveTimer = 3;
-      if (game.bossKills >= game.level) game.state = 'clear';
+      if (game.bossKills >= game.level - game.startLevel + 1) game.state = 'clear';
     }
 
     function spawnWave(n) {
@@ -392,6 +394,7 @@
       const k = KEYMAP[n] || n;
       if (down) {
         game.keys[k] = true;
+        if (game.state === 'title' && (n === '1' || n === '2')) { game.startLevel = +n; game.level = game.startLevel; startGame(); return; }
         if (game.state === 'title' || game.state === 'over') { if (n === 'enter') startGame(); return; }
         if (game.state === 'clear') { if (n === 'enter') nextLevel(); return; }
         if (game.state !== 'play') return;
@@ -537,6 +540,23 @@
 
     function drawBoss(ctx, b) {
       ctx.save(); ctx.translate(b.x, b.y);
+      if (b.sprite && spriteReady('boss')) {
+        const img = game.sprites.boss;
+        const s = (b.r * 2) / img.naturalWidth;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
+        const shipH = img.naturalHeight * s;
+        const fi = Math.floor(game.time * 10) % 3;
+        if (spriteReady('flame' + fi)) {
+          const f = game.sprites['flame' + fi];
+          const fs = (b.r * 1.6) / f.naturalWidth;
+          ctx.save(); ctx.translate(0, shipH / 2 - 6);
+          ctx.drawImage(f, -f.naturalWidth * fs / 2, 0, f.naturalWidth * fs, f.naturalHeight * fs);
+          ctx.restore();
+        }
+        ctx.restore();
+        return;
+      }
       const aura = ctx.createRadialGradient(0, 0, b.r * 0.4, 0, 0, b.r * 1.6);
       aura.addColorStop(0, 'rgba(255,60,90,0.35)'); aura.addColorStop(1, 'rgba(255,60,90,0)');
       ctx.fillStyle = aura;
@@ -637,7 +657,7 @@
       ctx.fillText('- VERTICAL SHOOT-EM-UP -', W / 2, H / 2 - 52);
       if (Math.floor(game.time * 2) % 2 === 0) {
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('PRESS ENTER', W / 2, H / 2 + 10);
+        ctx.fillText('ENTER = LV1 · 2 = LV2', W / 2, H / 2 + 10);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '13px monospace';
       const lines = ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (SLOW-MO, DRAINS BAR)', 'X — BOMB', 'P / ESC OR ❚❚ BUTTON — PAUSE · M — SOUND'];
