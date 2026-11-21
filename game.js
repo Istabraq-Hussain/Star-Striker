@@ -22,11 +22,13 @@
   function createGame(opts) {
     opts = opts || {};
     const storage = opts.storage || (typeof root.localStorage !== 'undefined' ? root.localStorage : null);
+    const qs = (typeof location !== 'undefined') ? new URLSearchParams(location.search) : null;
+    const startLevel = Math.min(99, Math.max(1, parseInt((opts && opts.startLevel) || (qs && qs.get('level')), 10) || 1));
     const game = {
       W, H, state: 'title', paused: false, sound: true,
       time: 0, shake: 0, score: 0, hi: 0, wave: 0, waveTimer: 0,
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
-      level: 1, focusMeter: 100, focusLock: false,
+      level: startLevel, startLevel, focusMeter: 100, focusLock: false,
       player: null, keys: {},
       bullets: [], ebullets: [], enemies: [], parts: [], powerups: [], spawns: [],
       boss: null, stars: [], sprites: {}, blasts: [],
@@ -95,7 +97,7 @@
       game.state = 'play'; game.paused = false;
       game.score = 0; game.lives = 3; game.bombs = 3; game.weapon = 1;
       game.wave = 0; game.waveTimer = 1.2; game.bossKills = 0; game.shake = 0;
-      game.level = 1; game.focusMeter = 100; game.focusLock = false;
+      game.level = game.startLevel; game.focusMeter = 100; game.focusLock = false;
       game.bullets.length = 0; game.ebullets.length = 0; game.enemies.length = 0;
       game.parts.length = 0; game.powerups.length = 0; game.spawns.length = 0; game.boss = null; game.blasts.length = 0;
       game.player.x = W / 2; game.player.y = H - 80; game.player.inv = 2; game.player.fireCd = 0; game.player.alive = true; game.player.bank = 0;
@@ -193,7 +195,7 @@
       burst(b.x, b.y, '#ff3d5e', 60); burst(b.x, b.y, '#ffd23f', 40);
       game.shake = 26; sfx.bomb();
       game.waveTimer = 3;
-      if (game.bossKills >= game.level) game.state = 'clear';
+      if (game.bossKills >= game.level - game.startLevel + 1) game.state = 'clear';
     }
 
     function spawnWave(n) {
@@ -392,6 +394,7 @@
       const k = KEYMAP[n] || n;
       if (down) {
         game.keys[k] = true;
+        if (game.state === 'title' && (n === '1' || n === '2')) { game.startLevel = +n; game.level = game.startLevel; startGame(); return; }
         if (game.state === 'title' || game.state === 'over') { if (n === 'enter') startGame(); return; }
         if (game.state === 'clear') { if (n === 'enter') nextLevel(); return; }
         if (game.state !== 'play') return;
@@ -654,7 +657,7 @@
       ctx.fillText('- VERTICAL SHOOT-EM-UP -', W / 2, H / 2 - 52);
       if (Math.floor(game.time * 2) % 2 === 0) {
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('PRESS ENTER', W / 2, H / 2 + 10);
+        ctx.fillText('ENTER = LV1 · 2 = LV2', W / 2, H / 2 + 10);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '13px monospace';
       const lines = ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (SLOW-MO, DRAINS BAR)', 'X — BOMB', 'P / ESC OR ❚❚ BUTTON — PAUSE · M — SOUND'];

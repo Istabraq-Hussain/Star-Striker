@@ -23,6 +23,7 @@ python3 -m http.server 8000
 | P or Esc (or click the ❚❚ button top-right) | Pause / resume |
 | M | Toggle sound |
 | Enter | Start / retry |
+| 2 (title screen) or `?level=2` in the URL | Start directly at level 2 |
 
 ## Features
 

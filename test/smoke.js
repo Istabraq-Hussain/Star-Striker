@@ -31,6 +31,11 @@ function step(g, n, dt) {
 
 const g = createGame({ storage });
 
+// start-level override (?level=2 / key 2)
+const gStart = createGame({ storage, startLevel: 2 });
+gStart.press('enter');
+assert(gStart.level === 2, 'startLevel option starts at level 2');
+
 // 1. title -> play
 assert(g.state === 'title', 'starts on title screen');
 g.render(ctxStub);
