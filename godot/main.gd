@@ -58,7 +58,7 @@ func _ready() -> void:
 			"flame0", "flame1", "flame2"]:
 		tex[n] = load(SPR + n + ".png")
 	for t in TYPES.keys():
-		if t != "asteroid":
+		if t != "asteroid" and t != "scout":
 			enemy_sprites[t] = load(SPR + "enemy_" + t + ".png")
 	for i in 8:
 		asteroid_sprites.append(load(SPR + "asteroid%d.png" % i))
@@ -113,7 +113,7 @@ func _input(event: InputEvent) -> void:
 			_use_bomb()
 			return
 	if event is InputEventMouseButton and event.pressed and state == "play":
-		var p := event.position
+		var p = event.position
 		if p.x >= W - 40 and p.x <= W - 10 and p.y >= 28 and p.y <= 48:
 			paused = not paused
 
@@ -355,7 +355,7 @@ func _make_boss(w: int) -> Dictionary:
 		"sprite": level >= 2}
 
 func _update_boss(wdt: float) -> void:
-	var b := boss
+	var b = boss
 	b["t"] += wdt
 	if b["y"] < b["target_y"]:
 		b["y"] += 55.0 * wdt
@@ -378,7 +378,7 @@ func _update_boss(wdt: float) -> void:
 
 func _radial(b: Dictionary) -> void:
 	for i in 18:
-		var a := i / 18.0 * TAU + b["t"]
+		var a = i / 18.0 * TAU + b["t"]
 		ebullets.append({"x": b["x"], "y": b["y"], "vx": cos(a) * 150, "vy": sin(a) * 150, "r": 4})
 
 func _aimed_spread(b: Dictionary) -> void:
@@ -389,7 +389,7 @@ func _aimed_spread(b: Dictionary) -> void:
 
 func _spiral(b: Dictionary) -> void:
 	for i in 3:
-		var a := b["t"] * 4 + i * TAU / 3
+		var a = b["t"] * 4 + i * TAU / 3
 		ebullets.append({"x": b["x"], "y": b["y"], "vx": cos(a) * 130, "vy": sin(a) * 130 + 40, "r": 4})
 
 func _aimed_shot(x: float, y: float) -> void:
@@ -426,7 +426,7 @@ func _kill_enemy(e: Dictionary) -> void:
 		powerups.append({"x": e["x"], "y": e["y"], "vy": 55, "t": 0, "kind": "p"})
 
 func _kill_boss() -> void:
-	var b := boss
+	var b = boss
 	boss = null
 	boss_kills += 1
 	score += 5000
@@ -488,7 +488,7 @@ func _draw() -> void:
 			t = enemy_sprites[e["type"]]
 		else:
 			t = tex["scout"]
-		var sc := (e["r"] * 2.6) / t.get_width()
+		var sc = (e["r"] * 2.6) / t.get_width()
 		var dest := Rect2(e["x"] - t.get_width() * sc / 2, e["y"] - t.get_height() * sc / 2, t.get_width() * sc, t.get_height() * sc)
 		draw_set_transform(cam + Vector2(0, 0), e["t"] * (0.4 if e["type"] == "asteroid" else 0.0))
 		draw_texture_rect(t, dest, false)
@@ -496,27 +496,27 @@ func _draw() -> void:
 		if e["max_hp"] > 1:
 			draw_arc(Vector2(e["x"], e["y"]), e["r"] + 4, -PI / 2, -PI / 2 + TAU * maxf(0, e["hp"] / float(e["max_hp"])), 12, Color.WHITE, 2)
 	if boss:
-		var b := boss
+		var b = boss
 		if b["sprite"]:
 			var bt: Texture2D = tex["boss"]
-			var bs := (b["r"] * 2.0) / bt.get_width()
+			var bs = (b["r"] * 2.0) / bt.get_width()
 			draw_texture_rect(bt, Rect2(b["x"] - bt.get_width() * bs / 2, b["y"] - bt.get_height() * bs / 2, bt.get_width() * bs, bt.get_height() * bs), false)
 			var fi := int(time * 10) % 3
 			var ft: Texture2D = flame_sprites[fi]
-			var fs := (b["r"] * 1.6) / ft.get_width()
-			var ship_h := bt.get_height() * bs
+			var fs = (b["r"] * 1.6) / ft.get_width()
+			var ship_h = bt.get_height() * bs
 			draw_texture_rect(ft, Rect2(b["x"] - ft.get_width() * fs / 2, b["y"] + ship_h / 2 - 6, ft.get_width() * fs, ft.get_height() * fs), false)
 		else:
 			# star boss
 			var pts := PackedVector2Array()
 			for i in 10:
-				var r := b["r"] if i % 2 == 0 else b["r"] * 0.55
-				var a := i / 10.0 * TAU - PI / 2 + b["t"] * 0.5
+				var r = b["r"] if i % 2 == 0 else b["r"] * 0.55
+				var a = i / 10.0 * TAU - PI / 2 + b["t"] * 0.5
 				pts.append(Vector2(b["x"], b["y"]) + Vector2(cos(a), sin(a)) * r)
 			draw_colored_polygon(pts, Color(0.88, 0.14, 0.29))
 			draw_circle(Vector2(b["x"], b["y"]), b["r"] * 0.28 * (1 + sin(b["t"] * 5) * 0.15), Color(1, 0.82, 0.25))
 	for b in ebullets:
-		var es := 12.0 / tex["ebullet"].get_width()
+		var es = 12.0 / tex["ebullet"].get_width()
 		draw_texture_rect(tex["ebullet"], Rect2(b["x"] - 6, b["y"] - 6, 12, 12), false)
 	for b in bullets:
 		var t: Texture2D = tex["special"] if b.get("big") else tex["bullet"]
