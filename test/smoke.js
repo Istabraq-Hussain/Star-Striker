@@ -76,6 +76,7 @@ assert(maxEB > 0, 'enemies fire bullets (max ' + maxEB + ' on screen)');
 assert(sawScore > 0, 'kills score points (score ' + sawScore + ')');
 
 // scout enemy spawns and renders
+g.player.inv = 9999;
 g.spawns.push({ type: 'scout', x: 100, y: -20, t: 0.01 });
 g.spawns.push({ type: 'raider', x: 300, y: -20, t: 0.01 });
 step(g, 5);
