@@ -187,6 +187,23 @@
       game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 4 });
       game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a + Math.PI) * 170, vy: Math.sin(a + Math.PI) * 170, r: 4 });
     }
+    function bloom(b) {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + b.t * 2;
+        game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 120, vy: Math.sin(a) * 120 + 60, r: 4 });
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - b.t * 2 + 0.26;
+        game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 80, vy: Math.sin(a) * 80 + 70, r: 4 });
+      }
+    }
+    function waveShot(b) {
+      const base = Math.atan2(game.player.y - b.y, game.player.x - b.x);
+      for (let i = -1; i <= 1; i++) {
+        const a = base + Math.sin(b.t * 5) * 0.35 + i * 0.22;
+        game.ebullets.push({ x: b.x, y: b.y + 30, vx: Math.cos(a) * 210, vy: Math.sin(a) * 210, r: 4 });
+      }
+    }
 
     function killBoss() {
       const b = game.boss; if (!b || b.dead) return;
@@ -315,9 +332,11 @@
         else {
           b.x = W / 2 + Math.sin(b.t * 0.8) * (W / 2 - 90);
           b.patternT -= wdt; b.fireCd -= wdt; b.summonT -= wdt;
-          if (b.patternT <= 0) { b.pattern = (b.pattern + 1) % 3; b.patternT = 3.2; if (b.pattern === 0) radial(b); }
+          if (b.patternT <= 0) { b.pattern = (b.pattern + 1) % 5; b.patternT = 3.2; if (b.pattern === 0) radial(b); }
           if (b.pattern === 1 && b.fireCd <= 0) { aimedSpread(b); b.fireCd = 0.45; }
           if (b.pattern === 2 && b.fireCd <= 0) { spiral(b); b.fireCd = 0.11; }
+          if (b.pattern === 3 && b.fireCd <= 0) { bloom(b); b.fireCd = 0.5; }
+          if (b.pattern === 4 && b.fireCd <= 0) { waveShot(b); b.fireCd = 0.16; }
           if (b.summonT <= 0) {
             b.summonT = 8;
             for (let i = 0; i < 3; i++) {
@@ -543,6 +562,8 @@
       if (b.sprite && spriteReady('boss')) {
         const img = game.sprites.boss;
         const s = (b.r * 2) / img.naturalWidth;
+        const ang = Math.atan2(game.player.x - b.x, -(game.player.y - b.y));
+        ctx.rotate(ang);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
         const shipH = img.naturalHeight * s;
