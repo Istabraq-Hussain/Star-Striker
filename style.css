@@ -8,6 +8,12 @@ html, body {
   justify-content: center;
   font-family: monospace;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .cabinet {
@@ -17,12 +23,19 @@ html, body {
   overflow: hidden;
   box-shadow: 0 0 60px rgba(0, 229, 255, 0.25), 0 0 120px rgba(255, 95, 208, 0.12), inset 0 0 30px rgba(0, 0, 0, 0.6);
   border: 2px solid #1c1c3a;
+  /* scale to fit any screen (phone portrait included), keep 480x640 aspect */
+  width: min(480px, 100vw, calc(100vh * 0.75));
+  width: min(480px, 100vw, calc(100dvh * 0.75));
+  aspect-ratio: 3 / 4;
 }
 
 canvas {
   display: block;
+  width: 100%;
+  height: 100%;
   background: #050514;
   image-rendering: pixelated;
+  touch-action: none;
 }
 
 .scanlines {
@@ -44,4 +57,88 @@ canvas {
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%);
+}
+
+/* ---------- touch controls (shown only on touch devices) ---------- */
+
+#touch-ui {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 5;
+}
+body.touch #touch-ui { display: block; }
+
+.tbtn {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(125, 249, 255, 0.55);
+  background: rgba(18, 28, 68, 0.45);
+  color: #7df9ff;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: clamp(10px, 3.4vmin, 16px);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.9);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  padding: 0;
+  cursor: pointer;
+}
+.tbtn.on, .tbtn:active { background: rgba(125, 249, 255, 0.35); }
+
+#btn-fire {
+  right: 4%; bottom: 5%; width: 22%; aspect-ratio: 1;
+  border-color: rgba(255, 210, 63, 0.75); color: #ffd23f;
+  text-shadow: 0 0 8px rgba(255, 210, 63, 0.9);
+  font-size: clamp(12px, 4.2vmin, 20px);
+}
+#btn-focus {
+  right: 30%; bottom: 13%; width: 16%; aspect-ratio: 1;
+  border-color: rgba(255, 143, 176, 0.75); color: #ff8fb0;
+  text-shadow: 0 0 8px rgba(255, 143, 176, 0.9);
+}
+#btn-bomb {
+  right: 6%; bottom: 31%; width: 14%; aspect-ratio: 1;
+  border-color: rgba(255, 210, 63, 0.75); color: #ffd23f;
+  text-shadow: 0 0 8px rgba(255, 210, 63, 0.9);
+}
+#btn-pause { right: 3%; top: 4%; width: 13%; height: 5.5%; border-radius: 10px; }
+#btn-start {
+  left: 50%; top: 60%; transform: translate(-50%, -50%);
+  width: 58%; height: 9%; border-radius: 14px;
+  font-size: clamp(14px, 5vmin, 24px);
+}
+#btn-lv2 {
+  left: 50%; top: 72%; transform: translate(-50%, -50%);
+  width: 32%; height: 7%; border-radius: 12px;
+}
+
+/* floating virtual stick, appears where you touch */
+#stick {
+  position: absolute;
+  display: none;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(125, 249, 255, 0.35);
+  background: rgba(18, 28, 68, 0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#stick-knob {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(125, 249, 255, 0.55);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.7);
 }

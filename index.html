@@ -3,14 +3,23 @@
 <head>
 <meta charset="utf-8">
 <title>Star Striker — Vertical Shoot-'em-Up</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="cabinet">
     <canvas id="game" width="480" height="640"></canvas>
     <div class="scanlines"></div>
+    <div id="touch-ui">
+      <div id="stick"><div id="stick-knob"></div></div>
+      <button id="btn-pause" class="tbtn" type="button">&#10074;&#10074;</button>
+      <button id="btn-bomb" class="tbtn" type="button">BOMB</button>
+      <button id="btn-focus" class="tbtn" type="button">FOCUS</button>
+      <button id="btn-fire" class="tbtn" type="button">FIRE</button>
+      <button id="btn-start" class="tbtn" type="button">START</button>
+      <button id="btn-lv2" class="tbtn" type="button">LV 2</button>
+    </div>
   </div>
-  <script src="game.js?v=9"></script>
+  <script src="game.js?v=10"></script>
 </body>
 </html>

@@ -25,6 +25,19 @@ python3 -m http.server 8000
 | Enter | Start / retry |
 | 2 (title screen) or `?level=2` in the URL | Start directly at level 2 |
 
+### Touch controls (smartphones / tablets)
+
+On touch devices the game shows on-screen controls automatically (the canvas scales to fill the phone screen):
+
+| Control | Action |
+| --- | --- |
+| Drag anywhere on the screen | Move (floating virtual stick appears where you touch) |
+| FIRE button (hold, bottom-right) | Fire |
+| FOCUS button (hold, right side) | Focus mode (same draining FOCUS bar as Shift) |
+| BOMB button | Bomb |
+| ❚❚ button (top-right) | Pause / resume |
+| Tap the screen / START button | Start / retry / next level (LV 2 button on the title screen starts level 2) |
+
 ## Features
 
 - Parallax starfield, screen shake, particle explosions

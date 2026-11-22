@@ -25,7 +25,7 @@
     const qs = (typeof location !== 'undefined') ? new URLSearchParams(location.search) : null;
     const startLevel = Math.min(99, Math.max(1, parseInt((opts && opts.startLevel) || (qs && qs.get('level')), 10) || 1));
     const game = {
-      W, H, state: 'title', paused: false, sound: true,
+      W, H, state: 'title', paused: false, sound: true, touch: false,
       time: 0, shake: 0, score: 0, hi: 0, wave: 0, waveTimer: 0,
       lives: 3, bombs: 3, weapon: 1, bossKills: 0, dropToggle: 0, musicT: 0,
       level: startLevel, startLevel, focusMeter: 100, focusLock: false,
@@ -635,7 +635,7 @@
       ctx.fillStyle = '#7df9ff';
       ctx.fillRect(W - 33, 33, 5, 10); ctx.fillRect(W - 24, 33, 5, 10);
       ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '11px monospace';
-      ctx.fillText('ARROWS/WASD MOVE · SPACE FIRE · SHIFT FOCUS · X BOMB · P/ESC PAUSE · M SOUND', W - 10, H - 12);
+      ctx.fillText(game.touch ? 'DRAG TO MOVE · FIRE/FOCUS/BOMB BUTTONS · ❚❚ PAUSE' : 'ARROWS/WASD MOVE · SPACE FIRE · SHIFT FOCUS · X BOMB · P/ESC PAUSE · M SOUND', W - 10, H - 12);
       ctx.restore();
       if (game.boss) {
         const b = game.boss;
@@ -657,10 +657,12 @@
       ctx.fillText('- VERTICAL SHOOT-EM-UP -', W / 2, H / 2 - 52);
       if (Math.floor(game.time * 2) % 2 === 0) {
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px monospace';
-        ctx.fillText('ENTER = LV1 · 2 = LV2', W / 2, H / 2 + 10);
+        ctx.fillText(game.touch ? 'TAP SCREEN = LV1 · LV 2 BUTTON = LV2' : 'ENTER = LV1 · 2 = LV2', W / 2, H / 2 + 10);
       }
       ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = '13px monospace';
-      const lines = ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (SLOW-MO, DRAINS BAR)', 'X — BOMB', 'P / ESC OR ❚❚ BUTTON — PAUSE · M — SOUND'];
+      const lines = game.touch
+        ? ['DRAG ANYWHERE — MOVE', 'FIRE (HOLD) — SHOOT', 'FOCUS (HOLD) — SLOW-MO, DRAINS BAR', 'BOMB — BOMB · ❚❚ — PAUSE']
+        : ['ARROWS / WASD — MOVE', 'SPACE — FIRE', 'SHIFT — FOCUS (SLOW-MO, DRAINS BAR)', 'X — BOMB', 'P / ESC OR ❚❚ BUTTON — PAUSE · M — SOUND'];
       lines.forEach((l, i) => ctx.fillText(l, W / 2, H / 2 + 50 + i * 20));
       ctx.fillStyle = '#ffd23f'; ctx.font = 'bold 14px monospace';
       ctx.fillText('HI-SCORE ' + String(game.hi).padStart(8, '0'), W / 2, H / 2 + 50 + lines.length * 20 + 10);
@@ -817,6 +819,13 @@
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
     const game = createGame({});
+    window.__starStrikerGame = game; // debug/test handle
+    // touch device (phone/tablet) => show on-screen controls; desktop => keyboard only
+    const isTouch = window.matchMedia
+      ? window.matchMedia('(pointer: coarse)').matches
+      : ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    game.touch = isTouch;
+    if (isTouch) document.body.classList.add('touch');
     window.addEventListener('keydown', e => {
       const n = e.key.toLowerCase();
       if (n === ' ' || n.indexOf('arrow') === 0) e.preventDefault();
@@ -829,12 +838,104 @@
       const y = (e.clientY - r.top) * (H / r.height);
       if (game.state === 'play' && x >= W - 40 && x <= W - 10 && y >= 28 && y <= 48) game.handleKey('p', true);
     });
+
+    // ---------- touch controls ----------
+    const $ = id => document.getElementById(id);
+    const stickEl = $('stick'), knobEl = $('stick-knob');
+    const btnFire = $('btn-fire'), btnFocus = $('btn-focus'), btnBomb = $('btn-bomb');
+    const btnPause = $('btn-pause'), btnStart = $('btn-start'), btnLv2 = $('btn-lv2');
+    if (isTouch && stickEl) {
+      let stickId = null, ox = 0, oy = 0;
+      const toGame = t => {
+        const r = canvas.getBoundingClientRect();
+        return {
+          x: (t.clientX - r.left) * (W / r.width),
+          y: (t.clientY - r.top) * (H / r.height),
+          px: (t.clientX - r.left) / r.width * 100,
+          py: (t.clientY - r.top) / r.height * 100,
+        };
+      };
+      const setDir = (dx, dy) => {
+        game.setKey('left', dx < -9); game.setKey('right', dx > 9);
+        game.setKey('up', dy < -9); game.setKey('down', dy > 9);
+      };
+      canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          const p = toGame(t);
+          if (game.state !== 'play') { game.press('enter'); continue; } // tap to start / retry / next level
+          if (p.x >= W - 40 && p.x <= W - 10 && p.y >= 28 && p.y <= 48) { game.handleKey('p', true); continue; }
+          if (stickId === null) {
+            stickId = t.identifier; ox = p.x; oy = p.y;
+            stickEl.style.display = 'block';
+            stickEl.style.left = p.px + '%'; stickEl.style.top = p.py + '%';
+            knobEl.style.left = '50%'; knobEl.style.top = '50%';
+          }
+        }
+      }, { passive: false });
+      canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (t.identifier !== stickId) continue;
+          const p = toGame(t);
+          let dx = p.x - ox, dy = p.y - oy;
+          const m = Math.hypot(dx, dy), max = 46;
+          if (m > max) { dx *= max / m; dy *= max / m; }
+          knobEl.style.left = (50 + dx * 0.55) + '%';
+          knobEl.style.top = (50 + dy * 0.55) + '%';
+          setDir(p.x - ox, p.y - oy);
+        }
+      }, { passive: false });
+      const endStick = e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (t.identifier === stickId) { stickId = null; stickEl.style.display = 'none'; setDir(0, 0); }
+        }
+      };
+      canvas.addEventListener('touchend', endStick, { passive: false });
+      canvas.addEventListener('touchcancel', endStick, { passive: false });
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+      const bindHold = (el, key) => { // press-and-hold buttons: FIRE, FOCUS
+        if (!el) return;
+        const on = e => { e.preventDefault(); el.classList.add('on'); game.handleKey(key, true); };
+        const off = e => { e.preventDefault(); el.classList.remove('on'); game.handleKey(key, false); };
+        el.addEventListener('touchstart', on, { passive: false });
+        el.addEventListener('touchend', off, { passive: false });
+        el.addEventListener('touchcancel', off, { passive: false });
+        el.addEventListener('mousedown', on);
+        el.addEventListener('mouseup', off);
+        el.addEventListener('mouseleave', () => { el.classList.remove('on'); game.handleKey(key, false); });
+        el.addEventListener('contextmenu', e => e.preventDefault());
+      };
+      const bindTap = (el, key) => { // single-press buttons: BOMB, PAUSE, START, LV2
+        if (!el) return;
+        const tap = e => { e.preventDefault(); game.press(key); };
+        el.addEventListener('touchstart', tap, { passive: false });
+        el.addEventListener('mousedown', tap);
+        el.addEventListener('contextmenu', e => e.preventDefault());
+      };
+      bindHold(btnFire, ' ');
+      bindHold(btnFocus, 'shift');
+      bindTap(btnBomb, 'x');
+      bindTap(btnPause, 'p');
+      bindTap(btnStart, 'enter');
+      bindTap(btnLv2, '2');
+    }
+    window.addEventListener('gesturestart', e => e.preventDefault()); // old iOS pinch-zoom
+
     let last = performance.now();
     function frame(now) {
       let dt = (now - last) / 1000; last = now;
       if (dt > 0.05) dt = 0.05;
       game.update(dt);
       game.render(ctx);
+      if (btnStart) {
+        const showStart = game.state === 'title' || game.state === 'over' || game.state === 'clear';
+        btnStart.style.visibility = showStart ? 'visible' : 'hidden';
+        btnStart.textContent = game.state === 'clear' ? 'NEXT LEVEL' : (game.state === 'over' ? 'RETRY' : 'START');
+        if (btnLv2) btnLv2.style.visibility = game.state === 'title' ? 'visible' : 'hidden';
+      }
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
