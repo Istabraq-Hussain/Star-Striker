@@ -821,9 +821,8 @@
     const game = createGame({});
     window.__starStrikerGame = game; // debug/test handle
     // touch device (phone/tablet) => show on-screen controls; desktop => keyboard only
-    const isTouch = window.matchMedia
-      ? window.matchMedia('(pointer: coarse)').matches
-      : ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    const coarse = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+    const isTouch = coarse || ('ontouchstart' in window) || ((navigator.maxTouchPoints || 0) > 0);
     game.touch = isTouch;
     if (isTouch) document.body.classList.add('touch');
     window.addEventListener('keydown', e => {

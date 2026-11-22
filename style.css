@@ -88,6 +88,7 @@ body.touch #touch-ui { display: block; }
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   padding: 0;
   cursor: pointer;
 }
