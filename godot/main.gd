@@ -363,14 +363,25 @@ func _update_boss(wdt: float) -> void:
 		b["x"] = W / 2.0 + sin(b["t"] * 0.8) * (W / 2.0 - 90)
 		b["pattern_t"] -= wdt; b["fire_cd"] -= wdt; b["summon_t"] -= wdt
 		if b["pattern_t"] <= 0:
-			b["pattern"] = (b["pattern"] + 1) % 3
+			b["pattern"] = (b["pattern"] + 1) % 5
 			b["pattern_t"] = 2.2
 		if b["fire_cd"] <= 0:
 			match b["pattern"]:
-				0: _radial(b)
-				1: _aimed_spread(b)
-				2: _spiral(b)
-			b["fire_cd"] = 0.85
+				0:
+					_radial(b)
+					b["fire_cd"] = 0.85
+				1:
+					_aimed_spread(b)
+					b["fire_cd"] = 0.45
+				2:
+					_spiral(b)
+					b["fire_cd"] = 0.11
+				3:
+					_bloom(b)
+					b["fire_cd"] = 0.5
+				4:
+					_wave_shot(b)
+					b["fire_cd"] = 0.16
 		if b["summon_t"] <= 0:
 			b["summon_t"] = 8.0
 			for i in 2:
@@ -391,6 +402,20 @@ func _spiral(b: Dictionary) -> void:
 	for i in 3:
 		var a = b["t"] * 4 + i * TAU / 3
 		ebullets.append({"x": b["x"], "y": b["y"], "vx": cos(a) * 130, "vy": sin(a) * 130 + 40, "r": 4})
+
+func _bloom(b: Dictionary) -> void:
+	for i in 12:
+		var a = i / 12.0 * TAU + b["t"] * 2
+		ebullets.append({"x": b["x"], "y": b["y"] + 20, "vx": cos(a) * 120, "vy": sin(a) * 120 + 60, "r": 4})
+	for i in 12:
+		var a = i / 12.0 * TAU - b["t"] * 2 + 0.26
+		ebullets.append({"x": b["x"], "y": b["y"] + 20, "vx": cos(a) * 80, "vy": sin(a) * 80 + 70, "r": 4})
+
+func _wave_shot(b: Dictionary) -> void:
+	var base := atan2(player["y"] - b["y"], player["x"] - b["x"])
+	for i in 3:
+		var a = base + sin(b["t"] * 5) * 0.35 + (i - 1) * 0.22
+		ebullets.append({"x": b["x"], "y": b["y"] + 30, "vx": cos(a) * 210, "vy": sin(a) * 210, "r": 4})
 
 func _aimed_shot(x: float, y: float) -> void:
 	var a := atan2(player["y"] - y, player["x"] - x)
@@ -500,12 +525,15 @@ func _draw() -> void:
 		if b["sprite"]:
 			var bt: Texture2D = tex["boss"]
 			var bs = (b["r"] * 2.0) / bt.get_width()
-			draw_texture_rect(bt, Rect2(b["x"] - bt.get_width() * bs / 2, b["y"] - bt.get_height() * bs / 2, bt.get_width() * bs, bt.get_height() * bs), false)
+			var ang = atan2(player["x"] - b["x"], -(player["y"] - b["y"]))
+			draw_set_transform(cam + Vector2(b["x"], b["y"]), ang)
+			draw_texture_rect(bt, Rect2(-bt.get_width() * bs / 2, -bt.get_height() * bs / 2, bt.get_width() * bs, bt.get_height() * bs), false)
 			var fi := int(time * 10) % 3
 			var ft: Texture2D = flame_sprites[fi]
 			var fs = (b["r"] * 1.6) / ft.get_width()
 			var ship_h = bt.get_height() * bs
-			draw_texture_rect(ft, Rect2(b["x"] - ft.get_width() * fs / 2, b["y"] + ship_h / 2 - 6, ft.get_width() * fs, ft.get_height() * fs), false)
+			draw_texture_rect(ft, Rect2(-ft.get_width() * fs / 2, ship_h / 2 - 6, ft.get_width() * fs, ft.get_height() * fs), false)
+			draw_set_transform(cam)
 		else:
 			# star boss
 			var pts := PackedVector2Array()
