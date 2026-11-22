@@ -36,7 +36,10 @@ On touch devices the game shows on-screen controls automatically (the canvas sca
 | FOCUS button (hold, right side) | Focus mode (same draining FOCUS bar as Shift) |
 | BOMB button | Bomb |
 | ❚❚ button (top-right) | Pause / resume |
+| ♪ button (top-left) | Toggle sound (same as M) |
 | Tap the screen / START button | Start / retry / next level (LV 2 button on the title screen starts level 2) |
+
+> Sound note: browsers only allow audio after the first tap/keypress, so the game unlocks sound on your first tap (the START tap). Sound effects + music are on by default; toggle with ♪ / M.
 
 ## Features
 

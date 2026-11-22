@@ -808,6 +808,12 @@
     game.press = n => { handleKey(n, true); handleKey(n, false); };
     game.setKey = (n, down) => handleKey(n, down);
     game.handleKey = handleKey;
+    // must be called from inside a user-gesture handler (tap/keypress), otherwise
+    // mobile browsers keep the AudioContext suspended and the game stays silent
+    game.unlockAudio = () => {
+      const a = audio();
+      if (a && a.state === 'suspended') { try { a.resume(); } catch (e) {} }
+    };
     game.update = update;
     game.render = render;
     game.startGame = startGame;
@@ -826,12 +832,14 @@
     game.touch = isTouch;
     if (isTouch) document.body.classList.add('touch');
     window.addEventListener('keydown', e => {
+      game.unlockAudio();
       const n = e.key.toLowerCase();
       if (n === ' ' || n.indexOf('arrow') === 0) e.preventDefault();
       game.handleKey(n, true);
     });
     window.addEventListener('keyup', e => { game.handleKey(e.key.toLowerCase(), false); });
     canvas.addEventListener('mousedown', e => {
+      game.unlockAudio();
       const r = canvas.getBoundingClientRect();
       const x = (e.clientX - r.left) * (W / r.width);
       const y = (e.clientY - r.top) * (H / r.height);
@@ -842,7 +850,7 @@
     const $ = id => document.getElementById(id);
     const stickEl = $('stick'), knobEl = $('stick-knob');
     const btnFire = $('btn-fire'), btnFocus = $('btn-focus'), btnBomb = $('btn-bomb');
-    const btnPause = $('btn-pause'), btnStart = $('btn-start'), btnLv2 = $('btn-lv2');
+    const btnPause = $('btn-pause'), btnStart = $('btn-start'), btnLv2 = $('btn-lv2'), btnSound = $('btn-sound');
     if (isTouch && stickEl) {
       let stickId = null, ox = 0, oy = 0;
       const toGame = t => {
@@ -860,6 +868,7 @@
       };
       canvas.addEventListener('touchstart', e => {
         e.preventDefault();
+        game.unlockAudio(); // first tap unlocks sound (browser autoplay policy)
         for (const t of e.changedTouches) {
           const p = toGame(t);
           if (game.state !== 'play') { game.press('enter'); continue; } // tap to start / retry / next level
@@ -897,7 +906,7 @@
 
       const bindHold = (el, key) => { // press-and-hold buttons: FIRE, FOCUS
         if (!el) return;
-        const on = e => { e.preventDefault(); el.classList.add('on'); game.handleKey(key, true); };
+        const on = e => { e.preventDefault(); game.unlockAudio(); el.classList.add('on'); game.handleKey(key, true); };
         const off = e => { e.preventDefault(); el.classList.remove('on'); game.handleKey(key, false); };
         el.addEventListener('touchstart', on, { passive: false });
         el.addEventListener('touchend', off, { passive: false });
@@ -907,9 +916,9 @@
         el.addEventListener('mouseleave', () => { el.classList.remove('on'); game.handleKey(key, false); });
         el.addEventListener('contextmenu', e => e.preventDefault());
       };
-      const bindTap = (el, key) => { // single-press buttons: BOMB, PAUSE, START, LV2
+      const bindTap = (el, key) => { // single-press buttons: BOMB, PAUSE, START, LV2, SOUND
         if (!el) return;
-        const tap = e => { e.preventDefault(); game.press(key); };
+        const tap = e => { e.preventDefault(); game.unlockAudio(); game.press(key); };
         el.addEventListener('touchstart', tap, { passive: false });
         el.addEventListener('mousedown', tap);
         el.addEventListener('contextmenu', e => e.preventDefault());
@@ -920,6 +929,7 @@
       bindTap(btnPause, 'p');
       bindTap(btnStart, 'enter');
       bindTap(btnLv2, '2');
+      bindTap(btnSound, 'm');
     }
     window.addEventListener('gesturestart', e => e.preventDefault()); // old iOS pinch-zoom
 
@@ -934,6 +944,7 @@
         btnStart.style.visibility = showStart ? 'visible' : 'hidden';
         btnStart.textContent = game.state === 'clear' ? 'NEXT LEVEL' : (game.state === 'over' ? 'RETRY' : 'START');
         if (btnLv2) btnLv2.style.visibility = game.state === 'title' ? 'visible' : 'hidden';
+        if (btnSound) btnSound.textContent = game.sound ? '♪' : '✕';
       }
       requestAnimationFrame(frame);
     }

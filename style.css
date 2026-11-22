@@ -110,6 +110,7 @@ body.touch #touch-ui { display: block; }
   border-color: rgba(255, 210, 63, 0.75); color: #ffd23f;
   text-shadow: 0 0 8px rgba(255, 210, 63, 0.9);
 }
+#btn-sound { left: 3%; top: 4%; width: 13%; height: 5.5%; border-radius: 10px; }
 #btn-pause { right: 3%; top: 4%; width: 13%; height: 5.5%; border-radius: 10px; }
 #btn-start {
   left: 50%; top: 60%; transform: translate(-50%, -50%);
