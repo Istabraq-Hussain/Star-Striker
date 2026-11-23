@@ -45,9 +45,9 @@ On touch devices the game shows on-screen controls automatically (the canvas sca
 
 - Parallax starfield, screen shake, particle explosions
 - 9 enemy types in rotating wave formations that scale with wave number: drone, weaver, tank, gunner, scout (organic creature remixed from `scout_top_teal.png`), plus raider/stalker/brute/phantom — kitbashed from Ship2/4/5/6.png (front/mid/rear sections recombined), rotated 90° to face the player, and recolored
-- Boss every 5th wave: radial bursts, aimed spreads, spiral patterns, drone summons, HP bar; killing the boss shows a LEVEL CLEAR screen and Enter starts the next (harder) level. Level 1 boss is the star; from level 2 the boss is your sprite ship with an animated engine flame (3 flicker frames)
+- Boss every 5th wave: 5 rotating patterns (radial, aimed spread, spiral, double bloom rings, sine wave), drone summons, HP bar; killing the boss shows a LEVEL CLEAR screen and Enter starts the next (harder) level. Level 1 boss is the star; from level 2 the boss is your sprite ship with an animated engine flame (3 flicker frames) that **rotates to face the player**
 - Limited focus meter: drains while focusing, regenerates otherwise
-- Asteroid obstacles (from `asteroids.png`, 8 variants) drift in from level 2 onward — shoot them or dodge; they don't break on contact
+- Asteroid obstacles (from `asteroids.png`, 8 variants) drift in fast from level 2 onward (5+ per wave, scaling with level) — shoot them or dodge; they never shoot back
 - Weapon power-ups up to a 4-level spread, bombs, rare 1UP drops
 - Tiny 3px hitbox (focus mode reveals it) — classic bullet-hell feel
 - Pixel-art sprite player ship (purple & yellow, Moroccan-style wings) with left/right banking poses while moving, sprite enemies in 4 distinct colors, and sprite bullets (bolt / missile / enemy orb), with vector fallback if images aren't loaded

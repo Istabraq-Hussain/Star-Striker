@@ -108,6 +108,19 @@ assert(g.spawns.some(s => s.type === 'asteroid') || g.enemies.some(e => e.type =
 g.level = 1; g.enemies.length = 0; g.spawns.length = 0; g.waveTimer = 0.01;
 step(g, 3);
 assert(!g.spawns.some(s => s.type === 'asteroid') && !g.enemies.some(e => e.type === 'asteroid'), 'no asteroids on level 1');
+
+// asteroids: more of them, faster, and they never shoot
+g.boss = null; g.level = 2; g.enemies.length = 0; g.spawns.length = 0; g.waveTimer = 0.01;
+step(g, 3);
+const astSpawns = g.spawns.filter(s => s.type === 'asteroid').length + g.enemies.filter(e => e.type === 'asteroid').length;
+assert(astSpawns >= 5, 'level 2 spawns at least 5 asteroids per wave (got ' + astSpawns + ')');
+g.enemies.length = 0; g.spawns.length = 0;
+g.enemies.push({ type: 'asteroid', x: 100, y: 200, baseX: 100, r: 16, hp: 4, maxHp: 4, speed: 62, score: 50, color: '#9a8c7a', t: 0, phase: 0, fireCd: 0, fireMul: 999, dead: false, variant: 0 });
+const ast = g.enemies[0];
+assert(ast.speed >= 60, 'asteroids are fast (speed >= 60, got ' + ast.speed + ')');
+g.ebullets.length = 0;
+step(g, 120); // 2 seconds with fireCd already at 0
+assert(g.ebullets.length === 0, 'asteroids never shoot');
 g.level = 1;
 
 // 4. bomb clears enemy bullets
@@ -140,6 +153,16 @@ for (let i = 0; i < 60 * 10; i++) {
   if (!g.boss) break;
 }
 assert(bossEB > 0, 'boss emits bullet patterns (max ' + bossEB + ' bullets)');
+// boss cycles through all 5 patterns (radial, aimed, spiral, bloom, wave)
+if (g.boss) {
+  const seen = new Set();
+  for (let k = 0; k < 5 && g.boss; k++) {
+    g.boss.patternT = 0.001;
+    step(g, 2);
+    if (g.boss) seen.add(g.boss.pattern);
+  }
+  assert(seen.has(3) && seen.has(4), 'boss cycles through bloom(3) and wave(4) patterns, seen=' + [...seen].sort().join(','));
+}
 g.render(ctxStub);
 
 // 7. kill the boss

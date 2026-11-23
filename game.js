@@ -16,7 +16,7 @@
     stalker: { hp: 3, r: 14, speed: 70,  score: 350, color: '#4ade80', fire: 0.8 },
     brute:   { hp: 8, r: 20, speed: 35,  score: 600, color: '#60a5fa', fire: 0.7 },
     phantom: { hp: 2, r: 12, speed: 100, score: 300, color: '#e879f9', fire: 1.3 },
-    asteroid: { hp: 4, r: 16, speed: 30, score: 50, color: '#9a8c7a', fire: 999 },
+    asteroid: { hp: 4, r: 16, speed: 62, score: 50, color: '#9a8c7a', fire: 999 },
   };
 
   function createGame(opts) {
@@ -187,6 +187,23 @@
       game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 4 });
       game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a + Math.PI) * 170, vy: Math.sin(a + Math.PI) * 170, r: 4 });
     }
+    function bloom(b) {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + b.t * 2;
+        game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 120, vy: Math.sin(a) * 120 + 60, r: 4 });
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - b.t * 2 + 0.26;
+        game.ebullets.push({ x: b.x, y: b.y + 20, vx: Math.cos(a) * 80, vy: Math.sin(a) * 80 + 70, r: 4 });
+      }
+    }
+    function waveShot(b) {
+      const base = Math.atan2(game.player.y - b.y, game.player.x - b.x);
+      for (let i = -1; i <= 1; i++) {
+        const a = base + Math.sin(b.t * 5) * 0.35 + i * 0.22;
+        game.ebullets.push({ x: b.x, y: b.y + 30, vx: Math.cos(a) * 210, vy: Math.sin(a) * 210, r: 4 });
+      }
+    }
 
     function killBoss() {
       const b = game.boss; if (!b || b.dead) return;
@@ -201,7 +218,7 @@
     function spawnWave(n) {
       const s = game.spawns;
       if (game.level >= 2) {
-        const na = 2 + Math.min(3, game.level - 1);
+        const na = 4 + Math.min(4, game.level - 1);
         for (let i = 0; i < na; i++) s.push({ type: 'asteroid', x: rand(40, W - 40), y: -rand(60, 300), t: rand(0.2, 2.5) });
       }
       if (n % 5 === 0) { game.boss = makeBoss(n); sfx.boss(); return; }
@@ -302,9 +319,9 @@
         else if (e.type === 'stalker') { if (e.y < 130) e.y += e.speed * wdt; else e.x += Math.sin(e.t * 2.5 + e.phase) * 110 * wdt; }
         else if (e.type === 'brute') { e.y += e.speed * wdt; e.x += clamp(game.player.x - e.x, -25, 25) * wdt; }
         else if (e.type === 'phantom') { e.y += e.speed * 0.8 * wdt; e.x = e.baseX + Math.sin(e.t * 4 + e.phase) * 110; }
-        else if (e.type === 'asteroid') { e.y += e.speed * wdt; e.x += Math.sin(e.t * 0.5 + e.phase) * 15 * wdt; }
+        else if (e.type === 'asteroid') { e.y += e.speed * wdt; e.x += Math.sin(e.t * 0.5 + e.phase) * 30 * wdt; }
         e.fireCd -= wdt;
-        if (e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6) * e.fireMul; }
+        if (e.type !== 'asteroid' && e.fireCd <= 0 && e.y > 0 && e.y < H * 0.72) { aimedShot(e.x, e.y + e.r); e.fireCd = rand(1.3, 2.6) * e.fireMul; }
         if (e.y > H + 50) e.dead = true;
       }
 
@@ -315,9 +332,11 @@
         else {
           b.x = W / 2 + Math.sin(b.t * 0.8) * (W / 2 - 90);
           b.patternT -= wdt; b.fireCd -= wdt; b.summonT -= wdt;
-          if (b.patternT <= 0) { b.pattern = (b.pattern + 1) % 3; b.patternT = 3.2; if (b.pattern === 0) radial(b); }
+          if (b.patternT <= 0) { b.pattern = (b.pattern + 1) % 5; b.patternT = 3.2; if (b.pattern === 0) radial(b); }
           if (b.pattern === 1 && b.fireCd <= 0) { aimedSpread(b); b.fireCd = 0.45; }
           if (b.pattern === 2 && b.fireCd <= 0) { spiral(b); b.fireCd = 0.11; }
+          if (b.pattern === 3 && b.fireCd <= 0) { bloom(b); b.fireCd = 0.5; }
+          if (b.pattern === 4 && b.fireCd <= 0) { waveShot(b); b.fireCd = 0.16; }
           if (b.summonT <= 0) {
             b.summonT = 8;
             for (let i = 0; i < 3; i++) {
@@ -543,6 +562,8 @@
       if (b.sprite && spriteReady('boss')) {
         const img = game.sprites.boss;
         const s = (b.r * 2) / img.naturalWidth;
+        const ang = Math.atan2(game.player.x - b.x, -(game.player.y - b.y)); // rotate nose-up sprite to face the player
+        ctx.rotate(ang);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, -img.naturalWidth * s / 2, -img.naturalHeight * s / 2, img.naturalWidth * s, img.naturalHeight * s);
         const shipH = img.naturalHeight * s;
